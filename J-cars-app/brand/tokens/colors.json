@@ -1,0 +1,23 @@
+{
+  "brand": {
+    "blue": {
+      "hex": "#3E60D9",
+      "rgb": "62, 96, 217",
+      "role": "primary",
+      "usage": "Primary brand color. Wordmark tagline, globe icon (front hemisphere), primary buttons, links, active states."
+    },
+    "black": {
+      "hex": "#000000",
+      "rgb": "0, 0, 0",
+      "role": "secondary",
+      "usage": "Wordmark, globe icon (back hemisphere), primary body text, high-contrast UI."
+    },
+    "white": {
+      "hex": "#FFFFFF",
+      "rgb": "255, 255, 255",
+      "role": "background",
+      "usage": "Logo background / negative space. Page background in light mode."
+    }
+  },
+  "source": "Sampled directly from Logo/logo-transparent-pdf.pdf (J-Cars Exports wordmark + globe icon)."
+}
