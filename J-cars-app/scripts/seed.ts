@@ -15,6 +15,9 @@ import type { Database } from "../src/types/database";
 type Tables = Database["public"]["Tables"];
 
 const DEV_PASSWORD = "DevPassword123!";
+// Set SEED_AUTH_USERS=false to seed catalog/reference data only — e.g.
+// against a hosted project you don't want a shared dev password on.
+const SEED_AUTH_USERS = process.env.SEED_AUTH_USERS !== "false";
 
 const supabase = createAdminSupabaseClient();
 
@@ -230,25 +233,27 @@ async function main() {
   }
 
   // 5. auth users + profile roles ----------------------------------------
-  const adminId = await getOrCreateAuthUser("admin@jcars.dev", "Admin User");
-  const salesId = await getOrCreateAuthUser("sales@jcars.dev", "Sales Rep");
-  const inventoryId = await getOrCreateAuthUser(
-    "inventory@jcars.dev",
-    "Inventory Manager",
-  );
-  await getOrCreateAuthUser("client1@jcars.dev", "Client One");
-  await getOrCreateAuthUser("client2@jcars.dev", "Client Two");
+  if (SEED_AUTH_USERS) {
+    const adminId = await getOrCreateAuthUser("admin@jcars.dev", "Admin User");
+    const salesId = await getOrCreateAuthUser("sales@jcars.dev", "Sales Rep");
+    const inventoryId = await getOrCreateAuthUser(
+      "inventory@jcars.dev",
+      "Inventory Manager",
+    );
+    await getOrCreateAuthUser("client1@jcars.dev", "Client One");
+    await getOrCreateAuthUser("client2@jcars.dev", "Client Two");
 
-  for (const [id, role] of [
-    [adminId, "admin"],
-    [salesId, "sales"],
-    [inventoryId, "inventory_manager"],
-  ] as const) {
-    const { error } = await supabase
-      .from("profiles")
-      .update({ role })
-      .eq("id", id);
-    if (error) throw new Error(`profiles role update: ${error.message}`);
+    for (const [id, role] of [
+      [adminId, "admin"],
+      [salesId, "sales"],
+      [inventoryId, "inventory_manager"],
+    ] as const) {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ role })
+        .eq("id", id);
+      if (error) throw new Error(`profiles role update: ${error.message}`);
+    }
   }
 
   // 6. vehicles ------------------------------------------------------------
@@ -303,7 +308,8 @@ async function main() {
     models: models.length,
     shipping_rates: shippingRateRows.length,
     vehicles: vehicleRows.length,
-    devPassword: DEV_PASSWORD,
+    authUsersSeeded: SEED_AUTH_USERS,
+    devPassword: SEED_AUTH_USERS ? DEV_PASSWORD : undefined,
   });
 }
 

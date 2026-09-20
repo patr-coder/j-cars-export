@@ -21,6 +21,14 @@ Also found at repo root: `AGENTS.md` and `CLAUDE.md` — these are auto-generate
 
 This machine's default Node is 20.18.1, but `@supabase/supabase-js` now requires Node ≥22 (it throws on `createClient()` under Node <22 — no native `WebSocket`). A Homebrew-installed Node 22.23.2 was used for all commands in this session via an explicit `PATH` prefix; the global/default Node was **not** changed. A `.nvmrc` (`22`) and `"engines": {"node": ">=22"}` in `package.json` are now in the repo. Before running any `npm` script here, either `nvm use` (with nvm) or otherwise ensure Node ≥22 is first on `PATH`.
 
+## Connected to a hosted Supabase project
+
+`.env.local` now points at a hosted project (`sgcalyaioghsyxtjgmmj.supabase.co`, owner's own Supabase account — not the "roboco-op's Org" this session's Supabase MCP connector is authorized for, so migrations/seeding were run via direct `psql`/CLI rather than the MCP tools). All 7 migrations applied; verified 20 tables + RLS policies present. Seeded **catalog data only** (8 makes, 20 models, 30 vehicles, 5 countries, 10 ports, 10 shipping rates) — deliberately **not** the 5 demo auth accounts, since a shared dev password on a real internet-reachable project is a bad idea. `auth.users` is empty on this project; `npm run dev` against it means no login works until real accounts are created.
+
+`scripts/seed.ts` got a `SEED_AUTH_USERS=false` flag for this (see DECISIONS.md) — reusable for any future hosted-catalog-only reseed.
+
+The local Supabase stack (Docker, port 563xx) is untouched and still has its own full seed including the demo accounts — switch `.env.local` back to the local values (see git history or re-run `supabase start`) to use it again.
+
 ## Not done yet (intentionally, per spec §19 phase boundaries)
 
 - Catalogue search/filters, vehicle detail data, image manager, i18n, quote calculator, CMS, payments, shipment tracking — all later phases, not started.

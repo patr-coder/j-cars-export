@@ -16,6 +16,14 @@ A plain RLS policy on `profiles` that reads `profiles.role` to decide access wou
 
 Chosen over Supabase's auto-run `seed.sql` because the seeded staff/client accounts need real `auth.users` rows with working passwords, and `supabase.auth.admin.createUser()` is the supported, version-stable way to create one. Hand-inserting into `auth.users`/`auth.identities` with `crypt()` works today but is an internal-schema hack that can break across GoTrue/CLI upgrades. `[db.seed]` is disabled in `supabase/config.toml` to avoid confusion about which path seeds the DB. Idempotent via upsert on natural keys (slug/code/ref_no) or a manual existence check where no natural key exists (locations, shipping_rates); auth users are looked up by email if `createUser` reports "already registered."
 
+## Migrated to the hosted project via direct `psql`, not the Supabase MCP connector
+
+The owner's hosted project (`sgcalyaioghsyxtjgmmj`) lives in a different Supabase account than the one this session's Supabase MCP connector is authorized for (`list_projects` only returned "roboco-op's Org" projects; `get_project` on the target ref returned a permission error). Rather than requiring a connector re-auth, applied the 7 migration files directly with `psql "$CONNECTION_STRING" -f <file>` using the project's own "Direct connection" string (Settings → Database), which only needed the DB password, not account-level access. `SUPABASE_SERVICE_ROLE_KEY`/`NEXT_PUBLIC_SUPABASE_ANON_KEY`/`NEXT_PUBLIC_SUPABASE_URL` in `.env.local` came from Settings → API the same way.
+
+## Added `SEED_AUTH_USERS` flag to `scripts/seed.ts`
+
+Needed to seed the hosted project's catalog/reference tables without also creating the 5 demo auth accounts (a shared `DevPassword123!` is fine on a throwaway local Docker instance, not on a real internet-reachable project). `SEED_AUTH_USERS=false npx tsx --env-file=.env.local scripts/seed.ts` skips section 5 (auth users + role assignment) entirely; vehicles seeding doesn't depend on it. Defaults to `true` so plain `npm run seed` against local dev is unchanged.
+
 ## Local Supabase ports shifted to 563xx
 
 This machine already runs two other local Supabase projects occupying the default 543xx range and a 553xx range. `supabase/config.toml` was shifted to 563xx (`api.port`, `db.port`, `shadow_port`, `db.pooler.port`, `studio.port`, `local_smtp.port`, `analytics.port`, `edge_runtime.inspector_port`) to avoid a port collision. This is local-machine-specific, not something to carry into a teammate's environment; if it ever collides there too, same fix.
