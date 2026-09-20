@@ -6,8 +6,15 @@ on:
   pull_request:
     branches: [main]
 
+# Repo root holds J-cars-app as a subproject (alongside other, unrelated
+# sibling projects) — every step runs from there.
+#
 # Playwright E2E isn't in this gate yet — Phase 0 has no specs (spec §17
 # lands E2E coverage with the flows it tests, phase by phase).
+defaults:
+  run:
+    working-directory: J-cars-app
+
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -23,8 +30,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version-file: ".nvmrc"
+          node-version-file: "J-cars-app/.nvmrc"
           cache: "npm"
+          cache-dependency-path: "J-cars-app/package-lock.json"
 
       - run: npm ci
 
