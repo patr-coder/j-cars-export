@@ -23,18 +23,29 @@ This machine's default Node is 20.18.1, but `@supabase/supabase-js` now requires
 
 ## Connected to a hosted Supabase project
 
-`.env.local` now points at a hosted project (`sgcalyaioghsyxtjgmmj.supabase.co`, owner's own Supabase account — not the "roboco-op's Org" this session's Supabase MCP connector is authorized for, so migrations/seeding were run via direct `psql`/CLI rather than the MCP tools). All 7 migrations applied; verified 20 tables + RLS policies present. Seeded **catalog data only** (8 makes, 20 models, 30 vehicles, 5 countries, 10 ports, 10 shipping rates) — deliberately **not** the 5 demo auth accounts, since a shared dev password on a real internet-reachable project is a bad idea. `auth.users` is empty on this project; `npm run dev` against it means no login works until real accounts are created.
+`.env.local` now points at a hosted project (`sgcalyaioghsyxtjgmmj.supabase.co`, owner's own Supabase account — not the "roboco-op's Org" this session's Supabase MCP connector is authorized for, so migrations/seeding were run via direct `psql`/CLI rather than the MCP tools). All 8 migrations applied (Phase 0's 7 plus Phase 1's storage bucket migration). Seeded catalog data + 30 placeholder vehicle images. One real admin account was created directly (email/password supplied by the owner via a temporary `.env.local` entry, never typed in chat) — `auth.users` is no longer empty on this project.
 
-`scripts/seed.ts` got a `SEED_AUTH_USERS=false` flag for this (see DECISIONS.md) — reusable for any future hosted-catalog-only reseed.
+`scripts/seed.ts` has a `SEED_AUTH_USERS=false` flag (see DECISIONS.md) — reusable for any future hosted-catalog-only reseed; the 5 shared-password demo accounts (`admin@jcars.dev` etc.) only exist locally, not on the hosted project.
 
-The local Supabase stack (Docker, port 563xx) is untouched and still has its own full seed including the demo accounts — switch `.env.local` back to the local values (see git history or re-run `supabase start`) to use it again.
+For local development, `.env.development.local` (gitignored, not checked in) holds the local Supabase stack's values — Next.js's own env precedence means `npm run dev`/`npm run seed --env-file=.env.development.local` use local data without touching `.env.local`'s hosted config. The local Supabase stack (Docker, port 563xx) still has its own full seed including the demo accounts.
+
+## Completed — Phase 1 (Catalogue public)
+
+- `src/lib/catalog/{queries,filters,slug,constants}.ts` — the public query layer (RLS-governed, uses the existing anon-scoped `lib/supabase/server.ts` client, no new client needed). Constants split into their own file after a real build failure taught why: a "use client" component importing anything from `queries.ts` drags the server-only Supabase code into the client bundle.
+- Home page (`/`) wired to real data: live available-vehicle count, a "Recently added" grid, and shop-by-make/shop-by-type link chips.
+- `/stock`: full filter form (keyword, make, model with a client-side cascading dropdown, year/price/mileage ranges, fuel, transmission, body type, steering, location, sort) as a plain `<form method="get">` — no client JS needed to submit, works via URL search params — plus pagination and an empty-results state.
+- `/cars/[slug]`: real vehicle detail (gallery, price, full specs table, JSON-LD `Vehicle`/`Offer` structured data, `generateMetadata`). CTA buttons for quote/reserve/WhatsApp render disabled (Phase 3 territory); "Ask a Question" links to the existing `/contact` page; no favorites button (Phase 4).
+- `app/sitemap.ts` (static pages + all published vehicles) and `app/robots.ts` (disallows `/account`, `/admin`, `/api`).
+- New `vehicle-images` Supabase Storage bucket + RLS-equivalent policies (migration `0008`), and a new seed step that uploads 6 placeholder photos (from `images/`, committed to the repo) and cycles them across all 30 seeded vehicles — verified end-to-end (public REST read via the anon key) on both local and the hosted project.
+- Verified via Playwright: home/stock/detail render with images, a filter (`make=toyota&sort=price_desc`) correctly narrows and sorts results, clicking a result lands on the matching detail page, JSON-LD parses.
 
 ## Not done yet (intentionally, per spec §19 phase boundaries)
 
-- Catalogue search/filters, vehicle detail data, image manager, i18n, quote calculator, CMS, payments, shipment tracking — all later phases, not started.
-- `chassis_no_private` / `vin_private` masking: RLS is row-level, not column-level, so these columns are technically readable by any role with row-select access. Deferred to Phase 1 when the public vehicle query path is actually built (see DECISIONS.md).
+- Admin vehicle/photo management, quotes, reservations, payments, shipment tracking, CMS, i18n — all later phases, not started.
+- Filter set is a deliberate subset of spec §3.2 (color/seats/cylindrée/promotion/status/date-added omitted from the UI to keep the form usable) — adding one is a small diff in `filters.ts` + `queries.ts`. See DECISIONS.md.
+- `chassis_no_private` / `vin_private` masking: still row-level only, not column-masked (see Phase 0 note in DECISIONS.md) — the public vehicle-detail query in `queries.ts` simply never selects those two columns, which is today's mitigation.
 - No `supabase/seed.sql` — seeding goes through `npm run seed` (or `npm run db:reset`) instead. See DECISIONS.md for why.
 
 ## Next steps
 
-Start Phase 1 — Catalogue public (home hero wired to real data, stock list with filters, vehicle detail page, SEO metadata).
+Start Phase 2 — Admin stock (admin auth/RBAC is already in place from Phase 0; CRUD for vehicles, the photo manager, and make/model/location management are next).

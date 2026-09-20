@@ -56,6 +56,26 @@ Open item, not acted on: the style guide recommends a geometric sans UI typeface
 
 A `recovery-codes.txt` appeared at the repo root mid-session (not created by this session) containing what look like MFA/account recovery codes, a browser session identifier, and a plaintext `database-password`. Added it to `.gitignore` immediately so it can never be committed; did not delete it, since its origin and whether the owner still needs it are unknown. **Flagged to the user — this file should be moved out of the project directory (e.g., into 1Password) and, if the listed database password is real and live, rotated.**
 
+## Phase 1: vehicle slug is one segment, not nested per make/model
+
+Kept Phase 0's existing `src/app/(public)/cars/[slug]/page.tsx` route rather than restructuring to `cars/[make]/[model]/[ref]`. Spec §12's `/cars/toyota/land-cruiser/ref-12345` is an illustrative example of clean URLs generally; spec §11's file convention (`cars/[slug]/`) is the binding folder structure, and Phase 0 already built it that way. The slug is `{makeSlug}-{modelSlug}-{refNo}` (`src/lib/catalog/slug.ts`); since `ref_no` is always exactly two hyphen-joined tokens (`JC-0001`), resolving a slug back to a vehicle just takes the *last two* dash-separated tokens of the whole slug — correct even when the model slug itself contains hyphens (`cr-v`, `land-cruiser`).
+
+## Phase 1: filters are a plain GET form, not client state
+
+`/stock`'s filters (`src/components/search/stock-filters.tsx`) submit via `<form method="get">` with the URL's search params as the single source of truth — no fetch, no client-side result state, matches the server-rendering pattern every other page in this app already uses. The one bit of client JS is the make→model cascading dropdown (narrowing visible `<option>`s on change) — that's a "use client" component, but it still submits as a normal form; the cascade is a UX nicety, not a requirement for the form to work.
+
+## Phase 1: split `constants.ts` out of `queries.ts` after a real build failure
+
+`stock-filters.tsx` (a "use client" component) originally imported `BODY_TYPES`/`FUEL_TYPES`/`TRANSMISSIONS` from `queries.ts`. That failed the production build: "You're importing a module that depends on next/headers... in the Pages Router" — because importing *anything* from `queries.ts` pulls in its server-only Supabase client code into the client bundle, regardless of which export is actually used. Moved the three pure constant arrays into `src/lib/catalog/constants.ts` (no Supabase import), which both the client filter form and the server query functions/home page import from. Lesson for later phases: a file mixing server-only data access with client-safe constants is a trap the bundler won't catch until build time — split them from the start next time.
+
+## Phase 1: cast raw Supabase rows to hand-written interfaces instead of fighting embedded-relation type inference
+
+`getVehicles`/`getVehicleBySlug` (`src/lib/catalog/queries.ts`) select embedded `make:makes(...)`/`model:models(...)`/`vehicle_images(...)` relations. Rather than relying on supabase-js's inferred type for that embedded shape (finicky in this version, similar to the earlier friction with the seed script's generic `upsert<T>`), the raw `.select()` result is cast once to an explicit `RawListRow`/inline type matching the select string, then mapped into the app's own `VehicleListItem`/`VehicleDetail` types. Same pragmatic trade-off as `scripts/seed.ts`'s `orThrow` helper: less compile-time guarantee on the raw DB row, none needed since it's immediately mapped into a fully-typed shape.
+
+## Phase 1: Storage bucket RLS mirrors table RLS
+
+`vehicle-images` (migration `0008`) is a public bucket with `storage.objects` policies following the exact same shape as the table policies in migration `0006`: public `select`, `admin`/`inventory_manager` write, using the same `get_my_role()` helper. No new pattern introduced.
+
 ## Real logo used from Phase 0, not a placeholder
 
 The spec's plan called for a placeholder swappable logo since branding is nominally an owner decision "before production" (spec §25). A `Logo/logo-transparent-pdf.pdf` appeared in the project directory mid-session — the owner's actual "J-cars Exports" wordmark + globe mark, in black and `#3361e1` blue. Used it directly (converted to SVG/PNG via `pdftocairo`) instead of building a throwaway placeholder, since it satisfies spec §5/§25's actual requirement more directly than a generic stand-in would. `Logo.tsx` stays the single swap point if it's ever replaced.

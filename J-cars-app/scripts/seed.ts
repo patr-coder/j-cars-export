@@ -9,6 +9,9 @@
  * INSERT into auth.users would work today but is an internal-schema hack
  * that can break across GoTrue/CLI upgrades. See DECISIONS.md.
  */
+import fs from "node:fs";
+import path from "node:path";
+
 import { createAdminSupabaseClient } from "../src/lib/supabase/admin-client";
 import type { Database } from "../src/types/database";
 
@@ -292,13 +295,55 @@ async function main() {
       featured: i % 7 === 0,
     };
   });
-  orThrow(
+  const savedVehicles = orThrow(
     "vehicles",
     await supabase
       .from("vehicles")
       .upsert(vehicleRows, { onConflict: "ref_no" })
-      .select(),
+      .select("id, ref_no"),
   );
+
+  // 7. vehicle_images (placeholder demo photos, Phase 1 — see DECISIONS.md) --
+  const imagesDir = path.join(process.cwd(), "images");
+  let imagesSeeded = 0;
+  if (fs.existsSync(imagesDir)) {
+    const files = fs.readdirSync(imagesDir).filter((f) => f.toLowerCase().endsWith(".png"));
+    const uploadedPaths: string[] = [];
+    for (const file of files) {
+      const storagePath = `seed/${file}`;
+      const buffer = fs.readFileSync(path.join(imagesDir, file));
+      const { error } = await supabase.storage
+        .from("vehicle-images")
+        .upload(storagePath, buffer, { contentType: "image/png", upsert: true });
+      if (error) throw new Error(`storage upload ${file}: ${error.message}`);
+      uploadedPaths.push(storagePath);
+    }
+
+    for (let i = 0; i < savedVehicles.length; i++) {
+      const vehicle = savedVehicles[i];
+      const { data: existing } = await supabase
+        .from("vehicle_images")
+        .select("id")
+        .eq("vehicle_id", vehicle.id)
+        .eq("is_primary", true)
+        .maybeSingle();
+      if (existing || uploadedPaths.length === 0) continue;
+
+      const storagePath = uploadedPaths[i % uploadedPaths.length];
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("vehicle-images").getPublicUrl(storagePath);
+      const { error } = await supabase.from("vehicle_images").insert({
+        vehicle_id: vehicle.id,
+        storage_path: storagePath,
+        public_url: publicUrl,
+        sort_order: 0,
+        is_primary: true,
+      });
+      if (error) throw new Error(`vehicle_images: ${error.message}`);
+      imagesSeeded += 1;
+    }
+  }
 
   console.log("Seed complete:", {
     countries: countries.length,
@@ -308,6 +353,7 @@ async function main() {
     models: models.length,
     shipping_rates: shippingRateRows.length,
     vehicles: vehicleRows.length,
+    vehicle_images: imagesSeeded,
     authUsersSeeded: SEED_AUTH_USERS,
     devPassword: SEED_AUTH_USERS ? DEV_PASSWORD : undefined,
   });
