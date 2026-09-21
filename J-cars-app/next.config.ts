@@ -7,6 +7,16 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  experimental: {
+    serverActions: {
+      // Default is 1MB, well under a real photo (and under this project's
+      // own 5MB-per-file / 10-files-per-upload limit in
+      // uploadVehicleImages — see src/actions/vehicle-images.ts). Sized to
+      // that limit's worst case (10 * 5MB) plus headroom, not left at the
+      // framework default.
+      bodySizeLimit: "50mb",
+    },
+  },
 };
 
 export default nextConfig;

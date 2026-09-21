@@ -17,3 +17,13 @@ export function buildVehicleSlug(params: {
 export function parseRefFromSlug(slug: string): string {
   return slug.split("-").slice(-2).join("-").toUpperCase();
 }
+
+// Used by the admin catalog form (makes/models) — same normalization the
+// seed data's hand-picked slugs already follow (lowercase, hyphenated).
+export function slugify(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}

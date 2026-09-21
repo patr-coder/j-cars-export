@@ -49,7 +49,7 @@ export default async function StockPage({
       )}
 
       <div className="mt-8">
-        <Pagination page={page} pageSize={pageSize} total={total} searchParams={rawParams} />
+        <Pagination page={page} pageSize={pageSize} total={total} searchParams={rawParams} basePath="/stock" />
       </div>
     </div>
   );

@@ -76,6 +76,40 @@ Kept Phase 0's existing `src/app/(public)/cars/[slug]/page.tsx` route rather tha
 
 `vehicle-images` (migration `0008`) is a public bucket with `storage.objects` policies following the exact same shape as the table policies in migration `0006`: public `select`, `admin`/`inventory_manager` write, using the same `get_my_role()` helper. No new pattern introduced.
 
+## Phase 2: admin mutations go through the RLS-governed client, not the service-role admin client
+
+`src/actions/vehicles.ts`, `vehicle-images.ts`, and `catalog.ts` all call `createClient()` from `src/lib/supabase/server.ts` (the same cookie-based, anon-scoped client every page already uses) rather than the service-role admin client from `src/lib/supabase/admin.ts`. RLS (migration `0006`) already grants `admin`/`inventory_manager` full read/write on `vehicles`/`vehicle_images`/`vehicle_features`, and `admin`-only write on `makes`/`models`/`locations` — so the signed-in staff user's own session is sufficient, and RLS becomes the real authorization boundary (matching the comment already in `src/lib/auth/roles.ts`: "every action must check this too" — `requireRole()` in each action is the second layer, not the only one). The service-role client stays confined to `scripts/seed.ts`, its original and only use — widening its usage surface into request-handling code would trade a narrow, well-understood exception for a broad one.
+
+## Phase 2: ref_no is auto-generated, not admin-entered
+
+New vehicles get `JC-XXXX` assigned server-side (`src/lib/catalog/ref-no.ts`), by reading every existing `ref_no` and taking the highest numeric suffix + 1 — not a `max()`/text sort, since `"JC-9"` would otherwise sort after `"JC-10"` as a string. No retry-on-conflict loop for a concurrent double-create; acceptable for a low-concurrency internal admin tool with a handful of staff accounts. `ref_no` is read-only once a vehicle exists (shown but not editable in the edit form), since it's baked into the public slug (`buildVehicleSlug`, Phase 1).
+
+## Phase 2: "archiver" collapses into "dépublier" — no `archived` status value
+
+Spec §4.2 lists créer/modifier/dupliquer/publier-dépublier/réserver/vendre/archiver/supprimer as admin actions, but the `vehicle_status` enum (migration `0001`) only has `available`/`reserved`/`sold`/`in_transit` — there's no `archived` value, and adding one wasn't warranted by anything Phase 2 actually needs yet. "Réserver"/"vendre" map directly to `setVehicleStatus`; "archiver" and "dépublier" both just mean `published = false` (`setVehiclePublished`). If a later phase needs a real distinction (e.g. "archived but keep the status history"), add the enum value then rather than guessing its shape now.
+
+## Phase 2: photo manager ships without drag-and-drop, compression, or watermarking
+
+Spec §4.3 calls drag-and-drop reorder, automatic compression, thumbnail generation, and logo watermarking "indispensables." `src/components/admin/photo-manager.tsx` ships multi-file upload, previews, set-primary, delete, and alt text — reorder is a pair of up/down buttons instead of drag-and-drop (no new DnD dependency), and compression/thumbnailing/watermarking are deferred entirely; uploaded files land in the `vehicle-images` bucket as-is. This mirrors Phase 1's own precedent (shipping a usable subset over full UI polish, e.g. no gallery lightbox) rather than blocking Phase 2 on image-processing work. Flagged here as an open item, not a silent gap — worth a dedicated polish pass once there's real inventory-photo volume to justify it.
+
+## Phase 2: admin vehicle search is a single `.ilike()` on `ref_no`, not a `.or()` across columns
+
+`getAdminVehicles` (`src/lib/catalog/queries.ts`) searches `ref_no` only. A tempting alternative — `.or('ref_no.ilike.%q%,description.ilike.%q%')` — folds the raw search string into a PostgREST filter-expression string; a `q` containing a comma or parenthesis would reshape the filter's logic, not just the search term (not classic SQL injection, since PostgREST still parameterizes the actual query, but still an unintended-query-shape bug for admin-controlled input). Single-column `.ilike()` sidesteps the whole class of issue.
+
+## Phase 2: photo upload never trusts the uploaded filename or declared type
+
+The `security-auditor` subagent caught a real path-traversal risk in the first pass of `uploadVehicleImages` (`src/actions/vehicle-images.ts`): the storage key was built as `` `${vehicleId}/${crypto.randomUUID()}-${file.name}` ``, and `file.name` in a multipart request is fully attacker-controllable — a crafted request (not just a browser file picker) could set a filename containing `/` or `..` and place or overwrite objects outside that vehicle's own prefix in the single, fully-public `vehicle-images` bucket. Fixed by never interpolating `file.name` into the path at all: the file's declared MIME type is checked against an allowlist (`image/jpeg`/`image/png`/`image/webp`), the storage key uses only `${vehicleId}/${crypto.randomUUID()}.${extension}`, and `contentType` passed to Storage comes from that same allowlist rather than the client-declared `file.type` verbatim — otherwise a public bucket could be made to serve back an attacker-chosen `Content-Type` (e.g. `image/svg+xml` with an inline `<script>`) at a public URL. Also added a per-upload file-count cap (10) and per-file size cap (5MB), since neither existed before.
+
+While testing this with a real (>1MB) sample photo, hit Next's own default Server Actions body limit (1MB) first — a 500 with a raw Next.js error page, before `uploadVehicleImages` ever got a chance to run its own validation. Set `experimental.serverActions.bodySizeLimit` to `50mb` in `next.config.ts`, sized to this exact worst case (10 files × 5MB), not left at the framework default. The two limits have to be read together: the app-level cap decides what's a *reasonable* upload, the framework-level cap has to be at least that large or every upload near the app's own limit fails with an unhelpful framework error instead of the friendly one.
+
+## Phase 2: `audit_logs` not wired up yet — deferred, not forgotten
+
+The schema already has an `audit_logs` table (migration `0004`, admin-only RLS) that nothing in Phase 2 writes to — publishing/unpublishing, deleting a vehicle, and deleting a make/model/location all happen with no application-level record of which staff account did it. Spec §19 lists "audit log" explicitly under Phase 6, so this is left for that phase rather than half-building it now; flagged here (per the `security-auditor` review) so it's a deliberate deferral, not a gap nobody noticed.
+
+## Phase 2: makes/models/locations get create+delete from the admin UI, not edit
+
+`src/app/admin/catalog/page.tsx` only exposes adding a new row and deleting an existing one — no inline edit. Renaming a make/model after vehicles already reference it is rare enough (and the slug would need to move with it, affecting existing public URLs) that it wasn't worth a form for Phase 2; delete-and-recreate covers the mistake-fixing case for a make/model that isn't in use yet, and the FK constraint blocks deleting one that is (surfaced as a friendly message via `?error=`, not a 500).
+
 ## Real logo used from Phase 0, not a placeholder
 
 The spec's plan called for a placeholder swappable logo since branding is nominally an owner decision "before production" (spec §25). A `Logo/logo-transparent-pdf.pdf` appeared in the project directory mid-session — the owner's actual "J-cars Exports" wordmark + globe mark, in black and `#3361e1` blue. Used it directly (converted to SVG/PNG via `pdftocairo`) instead of building a throwaway placeholder, since it satisfies spec §5/§25's actual requirement more directly than a generic stand-in would. `Logo.tsx` stays the single swap point if it's ever replaced.

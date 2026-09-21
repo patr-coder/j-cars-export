@@ -7,11 +7,13 @@ export function Pagination({
   pageSize,
   total,
   searchParams,
+  basePath,
 }: {
   page: number;
   pageSize: number;
   total: number;
   searchParams: Record<string, string | string[] | undefined>;
+  basePath: string;
 }) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   if (totalPages <= 1) return null;
@@ -24,7 +26,7 @@ export function Pagination({
     }
     if (targetPage > 1) params.set("page", String(targetPage));
     const qs = params.toString();
-    return qs ? `/stock?${qs}` : "/stock";
+    return qs ? `${basePath}?${qs}` : basePath;
   }
 
   return (

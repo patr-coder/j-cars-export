@@ -281,6 +281,210 @@ export async function getVehicleBySlug(slug: string): Promise<VehicleDetail | nu
   };
 }
 
+// --- Admin (staff-only) queries -------------------------------------------
+// Rely on RLS (vehicles_select_published_or_staff, migration 0006) to grant
+// visibility into unpublished/soft-deleted-excluded rows for signed-in
+// admin/sales/inventory_manager users — same createClient(), no separate
+// admin-scoped Supabase client needed.
+
+export type AdminVehicleListItem = VehicleListItem & { published: boolean };
+
+export type AdminVehicleFilters = {
+  q?: string;
+  status?: string;
+  published?: "true" | "false";
+  page?: number;
+};
+
+const ADMIN_LIST_SELECT = `
+  id, ref_no, trim, year, price_usd, sale_price_usd, mileage_km,
+  fuel_type, transmission, body_type, status, published, created_at,
+  make:makes ( name, slug ),
+  model:models ( name, slug ),
+  vehicle_images ( public_url, is_primary, sort_order )
+`;
+
+type RawAdminListRow = RawListRow & { published: boolean };
+
+function mapAdminListRow(row: RawAdminListRow): AdminVehicleListItem {
+  return { ...mapListRow(row), published: row.published };
+}
+
+export async function getAdminVehicles(filters: AdminVehicleFilters): Promise<{
+  vehicles: AdminVehicleListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}> {
+  const supabase = await createClient();
+  const page = filters.page ?? 1;
+
+  let query = supabase
+    .from("vehicles")
+    .select(ADMIN_LIST_SELECT, { count: "exact" })
+    .is("deleted_at", null);
+
+  // Single-column ilike, not `.or()` — a raw `q` folded into a PostgREST
+  // `or=` filter string lets commas/parens in the input reshape the query
+  // logic itself, not just the search term.
+  if (filters.q) query = query.ilike("ref_no", `%${filters.q}%`);
+  if (filters.status) query = query.eq("status", filters.status as Enums["vehicle_status"]);
+  if (filters.published) query = query.eq("published", filters.published === "true");
+
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+  const { data, error, count } = await query
+    .order("created_at", { ascending: false })
+    .range(from, to);
+  if (error) throw new Error(`getAdminVehicles: ${error.message}`);
+
+  return {
+    vehicles: ((data as unknown as RawAdminListRow[]) ?? []).map(mapAdminListRow),
+    total: count ?? 0,
+    page,
+    pageSize: PAGE_SIZE,
+  };
+}
+
+export type AdminVehicleImage = {
+  id: string;
+  url: string;
+  alt: string | null;
+  isPrimary: boolean;
+  sortOrder: number;
+};
+
+export type AdminVehicleDetail = {
+  id: string;
+  refNo: string;
+  makeId: string;
+  modelId: string;
+  trim: string | null;
+  year: number;
+  month: number | null;
+  priceUsd: number;
+  salePriceUsd: number | null;
+  mileageKm: number;
+  engineCc: number | null;
+  fuelType: string;
+  transmission: string;
+  driveType: string;
+  steeringSide: string;
+  bodyType: string;
+  color: string | null;
+  seats: number | null;
+  doors: number | null;
+  chassisNoPrivate: string | null;
+  vinPrivate: string | null;
+  widthMm: number | null;
+  heightMm: number | null;
+  lengthMm: number | null;
+  weightKg: number | null;
+  locationId: string | null;
+  description: string | null;
+  status: string;
+  published: boolean;
+  featured: boolean;
+  images: AdminVehicleImage[];
+};
+
+const ADMIN_DETAIL_SELECT = `
+  id, ref_no, make_id, model_id, trim, year, month, price_usd, sale_price_usd, mileage_km,
+  engine_cc, fuel_type, transmission, drive_type, steering_side, body_type,
+  color, seats, doors, chassis_no_private, vin_private,
+  width_mm, height_mm, length_mm, weight_kg, location_id,
+  description, status, published, featured,
+  vehicle_images ( id, public_url, alt_text, is_primary, sort_order )
+`;
+
+export async function getAdminVehicleById(id: string): Promise<AdminVehicleDetail | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("vehicles")
+    .select(ADMIN_DETAIL_SELECT)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (error) throw new Error(`getAdminVehicleById: ${error.message}`);
+  if (!data) return null;
+
+  const row = data as unknown as {
+    id: string;
+    ref_no: string;
+    make_id: string;
+    model_id: string;
+    trim: string | null;
+    year: number;
+    month: number | null;
+    price_usd: number;
+    sale_price_usd: number | null;
+    mileage_km: number;
+    engine_cc: number | null;
+    fuel_type: string;
+    transmission: string;
+    drive_type: string;
+    steering_side: string;
+    body_type: string;
+    color: string | null;
+    seats: number | null;
+    doors: number | null;
+    chassis_no_private: string | null;
+    vin_private: string | null;
+    width_mm: number | null;
+    height_mm: number | null;
+    length_mm: number | null;
+    weight_kg: number | null;
+    location_id: string | null;
+    description: string | null;
+    status: string;
+    published: boolean;
+    featured: boolean;
+    vehicle_images: (ImageRow & { id: string; alt_text: string | null })[];
+  };
+
+  const images = sortedImages(row.vehicle_images);
+
+  return {
+    id: row.id,
+    refNo: row.ref_no,
+    makeId: row.make_id,
+    modelId: row.model_id,
+    trim: row.trim,
+    year: row.year,
+    month: row.month,
+    priceUsd: Number(row.price_usd),
+    salePriceUsd: row.sale_price_usd === null ? null : Number(row.sale_price_usd),
+    mileageKm: row.mileage_km,
+    engineCc: row.engine_cc,
+    fuelType: row.fuel_type,
+    transmission: row.transmission,
+    driveType: row.drive_type,
+    steeringSide: row.steering_side,
+    bodyType: row.body_type,
+    color: row.color,
+    seats: row.seats,
+    doors: row.doors,
+    chassisNoPrivate: row.chassis_no_private,
+    vinPrivate: row.vin_private,
+    widthMm: row.width_mm,
+    heightMm: row.height_mm,
+    lengthMm: row.length_mm,
+    weightKg: row.weight_kg,
+    locationId: row.location_id,
+    description: row.description,
+    status: row.status,
+    published: row.published,
+    featured: row.featured,
+    images: images.map((img) => ({
+      id: img.id,
+      url: img.public_url,
+      alt: img.alt_text,
+      isPrimary: img.is_primary,
+      sortOrder: img.sort_order,
+    })),
+  };
+}
+
 export async function getMakes(): Promise<{ id: string; name: string; slug: string }[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("makes").select("id, name, slug").order("name");

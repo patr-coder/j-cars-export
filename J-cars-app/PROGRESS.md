@@ -41,11 +41,28 @@ For local development, `.env.development.local` (gitignored, not checked in) hol
 
 ## Not done yet (intentionally, per spec §19 phase boundaries)
 
-- Admin vehicle/photo management, quotes, reservations, payments, shipment tracking, CMS, i18n — all later phases, not started.
+- Quotes, reservations, payments, shipment tracking, CMS, i18n — all later phases, not started.
 - Filter set is a deliberate subset of spec §3.2 (color/seats/cylindrée/promotion/status/date-added omitted from the UI to keep the form usable) — adding one is a small diff in `filters.ts` + `queries.ts`. See DECISIONS.md.
 - `chassis_no_private` / `vin_private` masking: still row-level only, not column-masked (see Phase 0 note in DECISIONS.md) — the public vehicle-detail query in `queries.ts` simply never selects those two columns, which is today's mitigation.
 - No `supabase/seed.sql` — seeding goes through `npm run seed` (or `npm run db:reset`) instead. See DECISIONS.md for why.
 
+## Completed — Phase 2 (Admin stock)
+
+- Full vehicle CRUD at `/admin/vehicles` (`src/actions/vehicles.ts`): create, edit (all spec §3.3/§8 fields), duplicate, publish/unpublish, status transitions (available/reserved/sold/in_transit), soft delete. `ref_no` is auto-generated server-side (`src/lib/catalog/ref-no.ts`, next unused `JC-XXXX`) and read-only once set.
+- Photo manager at `/admin/vehicles/[id]/edit` (`src/components/admin/photo-manager.tsx`, `src/actions/vehicle-images.ts`): multi-file upload to the `vehicle-images` bucket, previews, set-primary, up/down reorder, delete, alt text. Reorder is buttons, not drag-and-drop; compression/thumbnailing/watermarking are deferred — see DECISIONS.md.
+- `/admin/catalog` (`src/actions/catalog.ts`): add/delete makes, models, locations (admin-only, matching their stricter RLS policy).
+- All mutations go through the same RLS-governed, cookie-based Supabase client every page uses (`createClient()`), not the service-role admin client — RLS is the real boundary, `requireRole()` in every action is the second layer.
+- `security-auditor` subagent review caught and fixed a real path-traversal risk in the photo upload (uploaded filenames were being interpolated into the Storage key) plus missing content-type/size/count validation — see DECISIONS.md for the fix.
+- Hit and fixed a real Next.js framework gap while testing: the default Server Actions body limit (1MB) is well under a real photo, silently 500'ing before the app's own upload validation ever ran. Raised `serverActions.bodySizeLimit` in `next.config.ts` to match the app's own upload limits.
+- Verified end-to-end via Playwright against local Supabase: admin creates a vehicle, uploads a photo, publishes it, confirms it appears on public `/stock`; duplicate/delete/status transitions; catalog add; and a `sales`-role account is correctly blocked from the create action (both `requireRole()` and RLS enforce it — RLS makes `/admin/vehicles/new` block the *mutation*, not the page itself, since sales is allowed into `/admin` generally per the layout gate).
+- One real testing gotcha worth remembering: Next.js 16 blocks dev-mode hydration/HMR for requests whose origin isn't in `allowedDevOrigins`, and `127.0.0.1` isn't automatically equivalent to `localhost` here — a Playwright script pointed at `127.0.0.1:3000` loads the page but every client component silently fails to hydrate (no error overlay, no console error). Use `http://localhost:3000` for any local browser automation against this app's dev server.
+
+## Not done yet in Phase 2 (deliberate, see DECISIONS.md)
+
+- Drag-and-drop photo reorder, automatic compression, thumbnail generation, logo watermarking.
+- `audit_logs` isn't written to by any of Phase 2's mutations yet — spec §19 puts "audit log" under Phase 6.
+- Make/model/location editing (only add + delete) — renaming isn't exposed from the admin UI yet.
+
 ## Next steps
 
-Start Phase 2 — Admin stock (admin auth/RBAC is already in place from Phase 0; CRUD for vehicles, the photo manager, and make/model/location management are next).
+Start Phase 3 — Leads and quotes (inquiry intake, a total-price calculator, shipping-rates admin, the quote workflow, email notifications).

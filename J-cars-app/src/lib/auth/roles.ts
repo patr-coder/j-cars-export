@@ -12,7 +12,7 @@ import type { Profile, Role } from "@/types";
  * (see src/proxy.ts and the Next.js data-security guide: Server Functions
  * are not separate routes, so every action must check this too).
  */
-export async function requireRole(allowed: Role[]): Promise<Profile> {
+export async function requireRole(allowed: readonly Role[]): Promise<Profile> {
   const profile = await getCurrentProfile();
 
   if (!profile) {

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BODY_TYPES, FUEL_TYPES, TRANSMISSIONS } from "@/lib/catalog/constants";
+import { BODY_TYPES, FUEL_TYPES, STEERING_SIDES, TRANSMISSIONS } from "@/lib/catalog/constants";
 import { SORT_OPTIONS, type VehicleSearchParams } from "@/lib/catalog/filters";
 
 const selectClassName =
@@ -150,8 +150,11 @@ export function StockFilters({
           <Label htmlFor="steering">Steering</Label>
           <select id="steering" name="steering" className={selectClassName} defaultValue={defaults.steering ?? ""}>
             <option value="">Any</option>
-            <option value="left">Left</option>
-            <option value="right">Right</option>
+            {STEERING_SIDES.map((s) => (
+              <option key={s} value={s} className="capitalize">
+                {s}
+              </option>
+            ))}
           </select>
         </div>
 
