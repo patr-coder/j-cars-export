@@ -7,6 +7,31 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       audit_logs: {
@@ -145,7 +170,7 @@ export type Database = {
           phone: string | null
           status: Database["public"]["Enums"]["inquiry_status"]
           user_id: string | null
-          vehicle_id: string
+          vehicle_id: string | null
         }
         Insert: {
           assigned_to?: string | null
@@ -157,7 +182,7 @@ export type Database = {
           phone?: string | null
           status?: Database["public"]["Enums"]["inquiry_status"]
           user_id?: string | null
-          vehicle_id: string
+          vehicle_id?: string | null
         }
         Update: {
           assigned_to?: string | null
@@ -169,7 +194,7 @@ export type Database = {
           phone?: string | null
           status?: Database["public"]["Enums"]["inquiry_status"]
           user_id?: string | null
-          vehicle_id?: string
+          vehicle_id?: string | null
         }
         Relationships: [
           {
@@ -631,11 +656,14 @@ export type Database = {
           active: boolean
           base_cost_usd: number
           category: string | null
+          certificate_fee_usd: number | null
           destination_port_id: string
           effective_from: string
           effective_to: string | null
           id: string
+          inspection_fee_usd: number | null
           insurance_rate: number | null
+          local_export_fee_usd: number | null
           m3_rate: number | null
           method: Database["public"]["Enums"]["shipping_method"]
           origin_location_id: string
@@ -644,11 +672,14 @@ export type Database = {
           active?: boolean
           base_cost_usd: number
           category?: string | null
+          certificate_fee_usd?: number | null
           destination_port_id: string
           effective_from?: string
           effective_to?: string | null
           id?: string
+          inspection_fee_usd?: number | null
           insurance_rate?: number | null
+          local_export_fee_usd?: number | null
           m3_rate?: number | null
           method: Database["public"]["Enums"]["shipping_method"]
           origin_location_id: string
@@ -657,11 +688,14 @@ export type Database = {
           active?: boolean
           base_cost_usd?: number
           category?: string | null
+          certificate_fee_usd?: number | null
           destination_port_id?: string
           effective_from?: string
           effective_to?: string | null
           id?: string
+          inspection_fee_usd?: number | null
           insurance_rate?: number | null
+          local_export_fee_usd?: number | null
           m3_rate?: number | null
           method?: Database["public"]["Enums"]["shipping_method"]
           origin_location_id?: string
@@ -1069,6 +1103,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       body_type: [

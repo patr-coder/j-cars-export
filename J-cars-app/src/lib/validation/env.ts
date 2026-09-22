@@ -8,6 +8,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_DEFAULT_CURRENCY: z.string().default("USD"),
   NEXT_PUBLIC_DEFAULT_LOCALE: z.string().default("en"),
   RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM_EMAIL: z.string().optional(),
   SENTRY_DSN: z.string().optional(),
 });
 

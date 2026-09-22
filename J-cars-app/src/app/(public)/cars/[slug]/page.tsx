@@ -5,9 +5,13 @@ import { Fragment } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { InquiryForm } from "@/components/quote/inquiry-form";
+import { PriceCalculator } from "@/components/quote/price-calculator";
 import { VehicleGallery } from "@/components/vehicle/vehicle-gallery";
+import { getCurrentProfile } from "@/lib/auth/session";
 import { formatCurrency } from "@/lib/currency/format";
 import { getVehicleBySlug } from "@/lib/catalog/queries";
+import { getActiveShippingRatesForLocation } from "@/lib/shipping/queries";
 
 export async function generateMetadata({
   params,
@@ -46,6 +50,11 @@ export default async function VehicleDetailPage({
   const { slug } = await params;
   const vehicle = await getVehicleBySlug(slug);
   if (!vehicle) notFound();
+
+  const [profile, shippingRates] = await Promise.all([
+    getCurrentProfile(),
+    vehicle.locationId ? getActiveShippingRatesForLocation(vehicle.locationId) : Promise.resolve([]),
+  ]);
 
   const price = vehicle.salePriceUsd ?? vehicle.priceUsd;
   const onSale = vehicle.salePriceUsd !== null && vehicle.salePriceUsd < vehicle.priceUsd;
@@ -126,17 +135,17 @@ export default async function VehicleDetailPage({
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Button disabled title="Available from Phase 3">
-              Get Quote
+            <Button asChild>
+              <a href="#quote">Get Quote</a>
             </Button>
-            <Button variant="outline" disabled title="Available from Phase 3">
+            <Button variant="outline" disabled title="Available from Phase 5">
               Reserve Vehicle
             </Button>
-            <Button variant="outline" disabled title="Available from Phase 3">
+            <Button variant="outline" disabled title="Available from Phase 6">
               WhatsApp
             </Button>
             <Button asChild variant="ghost">
-              <Link href="/contact">Ask a Question</Link>
+              <Link href={`/contact?vehicle=${vehicle.slug}`}>Ask a Question</Link>
             </Button>
           </div>
 
@@ -154,6 +163,18 @@ export default async function VehicleDetailPage({
           </dl>
         </div>
       </div>
+
+      <section id="quote" className="mx-auto mt-12 max-w-2xl scroll-mt-20 border-t pt-10">
+        <h2 className="mb-4 text-xl font-semibold">Request a quote</h2>
+        <div className="flex flex-col gap-6">
+          <PriceCalculator vehiclePriceUsd={price} rates={shippingRates} />
+          <InquiryForm
+            vehicleId={vehicle.id}
+            defaultName={profile?.full_name ?? undefined}
+            defaultEmail={profile?.email ?? undefined}
+          />
+        </div>
+      </section>
     </div>
   );
 }

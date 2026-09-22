@@ -37,6 +37,7 @@ export type VehicleDetail = VehicleListItem & {
   lengthMm: number | null;
   weightKg: number | null;
   description: string | null;
+  locationId: string | null;
   locationLabel: string | null;
   images: { url: string; alt: string | null; isPrimary: boolean }[];
   createdAt: string;
@@ -201,7 +202,7 @@ export async function getVehicleBySlug(slug: string): Promise<VehicleDetail | nu
       id, ref_no, trim, year, month, price_usd, sale_price_usd, mileage_km,
       engine_cc, fuel_type, transmission, drive_type, steering_side, body_type,
       color, seats, doors, width_mm, height_mm, length_mm, weight_kg,
-      description, status, created_at,
+      description, status, created_at, location_id,
       make:makes ( name, slug ),
       model:models ( name, slug ),
       location:locations ( city, country, yard_name ),
@@ -239,6 +240,7 @@ export async function getVehicleBySlug(slug: string): Promise<VehicleDetail | nu
     description: string | null;
     status: string;
     created_at: string;
+    location_id: string | null;
     make: { name: string; slug: string };
     model: { name: string; slug: string };
     location: { city: string; country: string; yard_name: string } | null;
@@ -274,6 +276,7 @@ export async function getVehicleBySlug(slug: string): Promise<VehicleDetail | nu
     weightKg: row.weight_kg,
     description: row.description,
     status: row.status,
+    locationId: row.location_id,
     locationLabel: row.location ? `${row.location.city}, ${row.location.country}` : null,
     images: images.map((img) => ({ url: img.public_url, alt: img.alt_text, isPrimary: img.is_primary })),
     primaryImageUrl: images[0]?.public_url ?? null,

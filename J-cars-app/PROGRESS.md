@@ -63,6 +63,25 @@ For local development, `.env.development.local` (gitignored, not checked in) hol
 - `audit_logs` isn't written to by any of Phase 2's mutations yet — spec §19 puts "audit log" under Phase 6.
 - Make/model/location editing (only add + delete) — renaming isn't exposed from the admin UI yet.
 
+## Completed — Phase 3 (Leads et devis)
+
+- Public "Get Quote" flow on `/cars/[slug]` (new "Request a quote" section) and a real `/contact` form: `src/components/quote/price-calculator.tsx` (live, client-side, driven entirely by that vehicle's `shipping_rates` — country → port → method cascade, insurance/inspection/certificate toggles) + `src/components/quote/inquiry-form.tsx` (`src/actions/inquiries.ts`'s `submitInquiry`, works for guests and signed-in users alike, no auth required per RLS's `inquiries_insert_anyone`).
+- Admin lead inbox at `/admin/inquiries` (list + detail: assign to staff, status transitions, "Create Quote") and quote workflow at `/admin/quotes` (`src/actions/quotes.ts`): quotes only originate from an inquiry (`/admin/quotes/new?inquiryId=`), reusing the same calculator logic (`src/lib/pricing/calculator.ts`) staff can then override before sending; "Send quote" emails the client (account or guest) and flips the linked inquiry to `quoted`.
+- `/admin/shipping`: countries, ports, and shipping rates (incl. three new admin-configurable fee columns — inspection/certificate/local-export) — admin-only, matching the stricter RLS on those three tables.
+- `/account/inquiries` shows a signed-in client's own inquiries and any quotes tied to them.
+- Two Resend email templates (`src/lib/email/templates.ts`) — "demande reçue" on inquiry submit, "devis prêt" on quote send — with `sendEmail()` (`src/lib/email/resend.ts`) console-logging instead of sending until `RESEND_API_KEY` is added to `.env.local`.
+- Migration `0009`: `inquiries.vehicle_id` is now nullable (so `/contact` works without a vehicle), `shipping_rates` gained `inspection_fee_usd`/`certificate_fee_usd`/`local_export_fee_usd`. Applied to both local and the hosted project.
+- `security-auditor` subagent review of the new anonymous-writable `submitInquiry` path and the rest of the staff actions — see DECISIONS.md for any findings and fixes.
+- Verified end-to-end via Playwright against local Supabase: guest submits a vehicle-linked inquiry (with the calculator showing real rate options) and a general one via `/contact`; sales signs in, sees both, assigns one, creates and sends a quote from it, confirms the linked inquiry flips to `quoted`; a signed-in client's own inquiry shows up in `/account/inquiries` with their email prefilled; an `inventory_manager` account is blocked from shipping-rate mutations (admin-only). Two real bugs caught this way: an ambiguous `quotes`↔`profiles` embedded-relation select (two FKs to the same table) and a Playwright timing lesson around non-redirecting server actions — both in DECISIONS.md.
+
+## Not done yet in Phase 3 (deliberate, see DECISIONS.md)
+
+- No standalone "create quote" flow — every quote must originate from an existing inquiry.
+- No public quote-viewing page for guest (no-account) leads — the full breakdown is inlined in the "devis prêt" email instead.
+- Reservation ("Reserve Vehicle" button) and WhatsApp contact stay disabled — they belong to Phase 5 (`orders`) and Phase 6 (CMS-configured contact info) respectively.
+- Only 2 of spec §16's email templates exist (inquiry received, quote ready) — the rest (welcome, reservation, payment, shipment, saved-search match) belong to later phases.
+- `RESEND_API_KEY` still isn't set — email sending is stubbed to a console log until it's added.
+
 ## Next steps
 
-Start Phase 3 — Leads and quotes (inquiry intake, a total-price calculator, shipping-rates admin, the quote workflow, email notifications).
+Start Phase 4 — Client account (favorites, saved searches, orders, invoices, profile/consignee).
