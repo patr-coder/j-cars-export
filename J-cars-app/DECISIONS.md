@@ -152,6 +152,10 @@ A lower-severity finding from the same audit: the form only offered rates for th
 
 Recurring pattern while testing Phase 3's admin flows (assign, send quote): a server action that only calls `revalidatePath()` (no `redirect()`) updates the page via a soft RSC re-render, not a browser navigation event — `page.wait_for_load_state("networkidle")` right after the triggering click can resolve *before* that re-render lands, making the very next assertion read stale content. Fix used throughout: wait for the specific expected outcome (`page.wait_for_selector(...)` or `page.wait_for_function(...)` on the changed element) instead of trusting `networkidle` timing. Same root cause as Phase 2's React-SSR-comment-node lesson — the fix is different, but the underlying rule is the same: assert on rendered state, not on network idleness.
 
+## Reconciled the `jcars-design` skill's brand-blue tokens against the already-decided value
+
+A `.claude/skills/jcars-design/` skill arrived via `git pull` (pushed from another session) with its own bundled `assets/jcars-tokens.css` and `references/brand-system.md`, both using `#3461E2` as the brand blue — a third, independently-sampled value, distinct from both this repo's `--brand-blue` (`#3E60D9`, `globals.css`) and the standing decision documented above ("Reconciled brand blue with the companion `J-cars-design` repo"). Since that decision already settled the question — defer to the dedicated `J-cars-design` repo as the canonical source rather than any one session's own PDF sampling — re-litigating it per-skill would let the brand color drift a little further every time a new tool samples the logo fresh. Updated the skill's tokens and docs to `#3E60D9` (and recomputed its `brand-700`/`brand-800`/`brand-100` shades to match) rather than touching `globals.css`, since the app and the design repo already agree with each other.
+
 ## Phase 3: manual-testing fixes — phone country/flag picker, vehicle preview on inquiry detail
 
 Three fixes requested by the owner after manually testing Phase 3 in the browser, before this phase was committed:

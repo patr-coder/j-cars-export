@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { sendQuote, setQuoteStatus, updateQuote } from "@/actions/quotes";
-import { Badge } from "@/components/ui/badge";
+import { QuoteStatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { QuoteEditForm } from "@/components/quote/quote-edit-form";
 import { QUOTE_STATUSES } from "@/lib/quotes/constants";
@@ -23,9 +23,7 @@ export default async function EditQuotePage({
           <h1 className="text-2xl font-semibold">{quote.vehicleLabel}</h1>
           <p className="text-sm text-muted-foreground">{quote.clientLabel}</p>
         </div>
-        <Badge variant="secondary" className="capitalize">
-          {quote.status}
-        </Badge>
+        <QuoteStatusBadge status={quote.status} />
       </div>
 
       <div className="flex flex-wrap gap-2">

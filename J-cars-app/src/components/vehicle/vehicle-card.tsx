@@ -1,7 +1,8 @@
+import { MapPinIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
+import { VehicleStatusBadge } from "@/components/status-badge";
 import { formatCurrency } from "@/lib/currency/format";
 import type { VehicleListItem } from "@/lib/catalog/queries";
 
@@ -29,9 +30,9 @@ export function VehicleCard({ vehicle }: { vehicle: VehicleListItem }) {
           </div>
         )}
         {vehicle.status !== "available" && (
-          <Badge variant="secondary" className="absolute top-2 left-2 capitalize">
-            {vehicle.status.replace("_", " ")}
-          </Badge>
+          <div className="absolute top-2 left-2">
+            <VehicleStatusBadge status={vehicle.status} />
+          </div>
         )}
       </div>
 
@@ -41,8 +42,15 @@ export function VehicleCard({ vehicle }: { vehicle: VehicleListItem }) {
           {vehicle.trim ? ` ${vehicle.trim}` : ""}
         </h3>
         <p className="text-sm text-muted-foreground">
-          {vehicle.year} · {vehicle.mileageKm.toLocaleString()} km · {vehicle.fuelType}
+          {vehicle.year} · {vehicle.mileageKm.toLocaleString()} km · {vehicle.fuelType} ·{" "}
+          {vehicle.transmission}
         </p>
+        {vehicle.locationLabel && (
+          <p className="flex items-center gap-1 text-sm text-muted-foreground">
+            <MapPinIcon className="size-3.5 shrink-0" />
+            {vehicle.locationLabel}
+          </p>
+        )}
         <div className="mt-2 flex items-baseline gap-2">
           <span className="text-lg font-semibold text-primary">{formatCurrency(price)}</span>
           {onSale && (

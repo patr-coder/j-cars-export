@@ -25,9 +25,9 @@ export async function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4">
         <Link href="/" className="flex items-center gap-2" aria-label="J-cars Exports home">
-          <Logo height={26} />
+          <Logo height={36} />
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
@@ -61,14 +61,14 @@ export async function Header() {
 
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon-sm" className="md:hidden" aria-label="Open menu">
+            <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu">
               <MenuIcon />
             </Button>
           </SheetTrigger>
           <SheetContent side="right">
             <SheetHeader>
               <SheetTitle>
-                <Logo height={22} />
+                <Logo height={30} />
               </SheetTitle>
             </SheetHeader>
             <nav className="flex flex-col gap-1 px-4" aria-label="Primary">

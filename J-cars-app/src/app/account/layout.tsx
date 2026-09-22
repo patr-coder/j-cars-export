@@ -24,7 +24,7 @@ export default async function AccountLayout({
   return (
     <>
       <Header />
-      <main className="mx-auto flex w-full max-w-6xl flex-1 gap-8 px-4 py-10">
+      <main className="mx-auto flex w-full max-w-7xl flex-1 gap-8 px-4 py-10">
         <aside className="hidden w-48 shrink-0 md:block">
           <nav className="flex flex-col gap-1" aria-label="Account">
             {ACCOUNT_NAV.map((item) => (

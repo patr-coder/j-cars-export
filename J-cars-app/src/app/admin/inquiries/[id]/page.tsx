@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { assignInquiry, setInquiryStatus } from "@/actions/inquiries";
-import { Badge } from "@/components/ui/badge";
+import { InquiryStatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { INQUIRY_STATUSES } from "@/lib/inquiries/constants";
 import { getAssignableStaff, getInquiryById } from "@/lib/inquiries/queries";
@@ -24,9 +24,7 @@ export default async function AdminInquiryDetailPage({
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{inquiry.name}</h1>
-        <Badge variant="secondary" className="capitalize">
-          {inquiry.status}
-        </Badge>
+        <InquiryStatusBadge status={inquiry.status} />
       </div>
 
       {inquiry.vehicleSlug && (

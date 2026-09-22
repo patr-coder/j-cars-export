@@ -21,6 +21,7 @@ export type VehicleListItem = {
   transmission: string;
   bodyType: string;
   status: string;
+  locationLabel: string | null;
   primaryImageUrl: string | null;
 };
 
@@ -48,6 +49,7 @@ const LIST_SELECT = `
   fuel_type, transmission, body_type, status, created_at,
   make:makes ( name, slug ),
   model:models ( name, slug ),
+  location:locations ( city, country ),
   vehicle_images ( public_url, is_primary, sort_order )
 `;
 
@@ -71,6 +73,7 @@ type RawListRow = {
   created_at: string;
   make: { name: string; slug: string };
   model: { name: string; slug: string };
+  location: { city: string; country: string } | null;
   vehicle_images: ImageRow[];
 };
 
@@ -100,6 +103,7 @@ function mapListRow(row: RawListRow): VehicleListItem {
     transmission: row.transmission,
     bodyType: row.body_type,
     status: row.status,
+    locationLabel: row.location ? `${row.location.city}, ${row.location.country}` : null,
     primaryImageUrl: sortedImages(row.vehicle_images)[0]?.public_url ?? null,
   };
 }

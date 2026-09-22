@@ -32,11 +32,11 @@ export function Pagination({
   return (
     <nav className="flex items-center justify-center gap-3" aria-label="Pagination">
       {page > 1 ? (
-        <Button asChild variant="outline" size="sm">
+        <Button asChild variant="outline">
           <Link href={hrefForPage(page - 1)}>Previous</Link>
         </Button>
       ) : (
-        <Button variant="outline" size="sm" disabled>
+        <Button variant="outline" disabled>
           Previous
         </Button>
       )}
@@ -46,11 +46,11 @@ export function Pagination({
       </span>
 
       {page < totalPages ? (
-        <Button asChild variant="outline" size="sm">
+        <Button asChild variant="outline">
           <Link href={hrefForPage(page + 1)}>Next</Link>
         </Button>
       ) : (
-        <Button variant="outline" size="sm" disabled>
+        <Button variant="outline" disabled>
           Next
         </Button>
       )}

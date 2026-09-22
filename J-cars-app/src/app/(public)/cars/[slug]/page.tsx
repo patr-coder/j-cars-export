@@ -106,7 +106,7 @@ export default async function VehicleDetailPage({
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
+    <div className="mx-auto max-w-7xl px-4 py-10">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">

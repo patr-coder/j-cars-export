@@ -15,14 +15,14 @@ Design for a modern international vehicle exporter. The experience must feel tru
 
 ## Color tokens
 
-The primary blue is sampled from the supplied logo. Use semantic token names in code.
+The primary blue matches `--brand-blue` in `src/app/globals.css`, the project's single source of truth for the brand color (itself sourced from the dedicated `J-cars-design` repo, not resampled independently — see that project's `DECISIONS.md`). Use semantic token names in code.
 
 | Role | Token | Value | Guidance |
 |---|---|---:|---|
-| Brand primary | `brand-600` | `#3461E2` | Primary buttons, links, active navigation |
-| Primary hover | `brand-700` | `#294FC0` | Hover and pressed emphasis |
-| Primary dark | `brand-800` | `#1D3F9F` | Strong selected states |
-| Primary soft | `brand-100` | `#E8EEFF` | Selected backgrounds, badges |
+| Brand primary | `brand-600` | `#3E60D9` | Primary buttons, links, active navigation |
+| Primary hover | `brand-700` | `#314EB8` | Hover and pressed emphasis |
+| Primary dark | `brand-800` | `#233E99` | Strong selected states |
+| Primary soft | `brand-100` | `#ECEFFB` | Selected backgrounds, badges |
 | Ink | `ink-950` | `#000000` | Logo-aligned headings and critical text |
 | Navy | `ink-900` | `#101828` | Default body copy and dark surfaces |
 | Muted text | `ink-600` | `#475467` | Supporting text |

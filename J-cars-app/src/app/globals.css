@@ -27,6 +27,8 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -69,6 +71,10 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
+  /* J-cars status semantics (brand-system.md) — available/confirmed,
+     pending/attention. Error reuses --destructive rather than duplicating it. */
+  --success: #14804a;
+  --warning: #b54708;
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: color-mix(in oklch, var(--brand-blue) 55%, white);
@@ -104,6 +110,8 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  --success: color-mix(in oklch, #14804a 80%, white);
+  --warning: color-mix(in oklch, #b54708 80%, white);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: color-mix(in oklch, var(--brand-blue) 55%, white);

@@ -14,7 +14,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className="mx-auto flex max-w-6xl flex-col items-start gap-6 px-4 py-24">
+      <section className="mx-auto flex max-w-7xl flex-col items-start gap-6 px-4 py-24">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
           Quality used vehicles,
           <br />
@@ -35,7 +35,7 @@ export default async function HomePage() {
       </section>
 
       {recent.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 py-12">
+        <section className="mx-auto max-w-7xl px-4 py-12">
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-2xl font-semibold">Recently added</h2>
             <Link href="/stock" className="text-sm text-primary hover:underline">
@@ -50,7 +50,7 @@ export default async function HomePage() {
         </section>
       )}
 
-      <section className="mx-auto max-w-6xl px-4 py-12">
+      <section className="mx-auto max-w-7xl px-4 py-12">
         <h2 className="mb-4 text-2xl font-semibold">Shop by make</h2>
         <div className="flex flex-wrap gap-2">
           {makes.map((make) => (
@@ -65,7 +65,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-12">
+      <section className="mx-auto max-w-7xl px-4 py-12">
         <h2 className="mb-4 text-2xl font-semibold">Shop by type</h2>
         <div className="flex flex-wrap gap-2">
           {BODY_TYPES.map((type) => (

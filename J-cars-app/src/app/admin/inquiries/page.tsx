@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
+import { InquiryStatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAdminInquiries } from "@/lib/inquiries/queries";
@@ -69,9 +69,7 @@ export default async function AdminInquiriesPage({
                 </TableCell>
                 <TableCell>{i.vehicleLabel ?? "General inquiry"}</TableCell>
                 <TableCell>
-                  <Badge variant="secondary" className="capitalize">
-                    {i.status}
-                  </Badge>
+                  <InquiryStatusBadge status={i.status} />
                 </TableCell>
                 <TableCell>{i.assigneeName ?? "—"}</TableCell>
                 <TableCell>{new Date(i.createdAt).toLocaleDateString()}</TableCell>

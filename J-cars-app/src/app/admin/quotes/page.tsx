@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
+import { QuoteStatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { QUOTE_STATUSES } from "@/lib/quotes/constants";
@@ -67,9 +67,7 @@ export default async function AdminQuotesPage({
                 <TableCell>{q.vehicleLabel}</TableCell>
                 <TableCell>${q.totalUsd.toLocaleString()}</TableCell>
                 <TableCell>
-                  <Badge variant="secondary" className="capitalize">
-                    {q.status}
-                  </Badge>
+                  <QuoteStatusBadge status={q.status} />
                 </TableCell>
                 <TableCell>{new Date(q.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell className="text-right">

@@ -29,7 +29,7 @@ export default async function AdminLayout({
       <aside className="hidden w-56 shrink-0 border-r bg-secondary/30 md:block">
         <div className="flex h-16 items-center border-b px-4">
           <Link href="/admin" aria-label="J-cars Exports admin">
-            <Logo height={22} />
+            <Logo height={30} />
           </Link>
         </div>
         <nav className="flex flex-col gap-1 p-3" aria-label="Admin">

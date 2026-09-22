@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { InquiryStatusBadge, QuoteStatusBadge } from "@/components/status-badge";
 import { getCurrentProfile } from "@/lib/auth/session";
 import { getClientInquiries } from "@/lib/inquiries/queries";
 import { getClientQuotes } from "@/lib/quotes/queries";
@@ -28,9 +28,7 @@ export default async function AccountInquiriesPage() {
           {inquiries.map((i) => (
             <li key={i.id} className="flex items-center justify-between rounded-xl border p-3 text-sm">
               <span>{i.vehicleLabel ?? "General inquiry"}</span>
-              <Badge variant="secondary" className="capitalize">
-                {i.status}
-              </Badge>
+              <InquiryStatusBadge status={i.status} />
               <span className="text-muted-foreground">{new Date(i.createdAt).toLocaleDateString()}</span>
             </li>
           ))}
@@ -44,9 +42,7 @@ export default async function AccountInquiriesPage() {
             {quotes.map((q) => (
               <li key={q.id} className="flex items-center justify-between rounded-xl border p-3 text-sm">
                 <span>{q.vehicleLabel}</span>
-                <Badge variant="secondary" className="capitalize">
-                  {q.status}
-                </Badge>
+                <QuoteStatusBadge status={q.status} />
                 <span>${q.totalUsd.toLocaleString()}</span>
               </li>
             ))}

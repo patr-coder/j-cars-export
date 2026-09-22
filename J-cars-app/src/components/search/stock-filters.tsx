@@ -171,12 +171,10 @@ export function StockFilters({
       </div>
 
       <div className="flex justify-end gap-2">
-        <Button asChild variant="ghost" size="sm">
+        <Button asChild variant="ghost">
           <a href="/stock">Clear</a>
         </Button>
-        <Button type="submit" size="sm">
-          Apply filters
-        </Button>
+        <Button type="submit">Apply filters</Button>
       </div>
     </form>
   );
