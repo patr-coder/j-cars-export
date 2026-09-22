@@ -78,10 +78,31 @@ For local development, `.env.development.local` (gitignored, not checked in) hol
 
 - No standalone "create quote" flow — every quote must originate from an existing inquiry.
 - No public quote-viewing page for guest (no-account) leads — the full breakdown is inlined in the "devis prêt" email instead.
-- Reservation ("Reserve Vehicle" button) and WhatsApp contact stay disabled — they belong to Phase 5 (`orders`) and Phase 6 (CMS-configured contact info) respectively.
+- Reservation ("Reserve Vehicle" button) landed in Phase 4, not Phase 5 as first assumed here — see below. WhatsApp contact still stays disabled (Phase 6, CMS-configured contact info).
 - Only 2 of spec §16's email templates exist (inquiry received, quote ready) — the rest (welcome, reservation, payment, shipment, saved-search match) belong to later phases.
 - `RESEND_API_KEY` still isn't set — email sending is stubbed to a console log until it's added.
 
+## Completed — Phase 4 (Compte client)
+
+- Favorites: heart toggle on vehicle cards and the vehicle detail page (`src/actions/favorites.ts`, `src/lib/favorites/queries.ts`), listed at `/account/favorites`. No schema/RLS changes needed — `favorites` was already correctly owner-scoped from Phase 0.
+- Saved searches: "Save this search" on `/stock` (`src/components/search/save-search-button.tsx`, `src/actions/saved-searches.ts`), listed at `/account/searches` with a "View results" link that replays the saved filters. The `email_alerts` preference is captured but the actual "new vehicle matches your search" email job isn't built yet — no scheduler in this project (see DECISIONS.md).
+- Reservation: a signed-in client can reserve an available vehicle directly from `/cars/[slug]` (`reserveVehicle`, `src/actions/orders.ts`) — a new `orders_insert_owner` RLS policy (migration `0010`) allows the self-insert, a `72h` hold (`reserved_until`), and a `security definer` trigger (`sync_vehicle_status_from_order`) flips the vehicle's own status to `reserved` without widening any client's write access to the `vehicles` table. A DB-level unique index (`orders_one_active_per_vehicle`, migration `0011`) prevents two people from both reserving the same vehicle in a race. Cancellation (`cancelOrder`) is available to the order's owner or staff, with a reason, and only while the order hasn't progressed past `reserved`/`awaiting_payment`.
+- `/account/orders` (client) and `/admin/orders` + `/admin/orders/[id]` (staff): list, view, cancel; staff can additionally advance `reserved → awaiting_payment` (`setOrderStatus`) — the rest of the lifecycle (`paid` onward) is Phase 5, once `payments` exist to drive it.
+- `/account/invoices`: a read-only render of each order's quote breakdown (vehicle price, freight, fees) — no new `invoices` table, no PDF (spec marks PDF generation as V2); reuses the same data `getClientOrders`/`getAdminOrders` already fetch.
+- `/account/profile` is now a real editable form (`src/components/account/profile-form.tsx`, `src/actions/profile.ts`): name, phone, WhatsApp, preferred language/currency, and six new nullable consignee fields on `profiles` (migration `0010`) — a reasonable MVP set since the spec never defines what a consignee record needs.
+- `/account` (dashboard) now summarizes favorites/active-orders/quote counts instead of a bare welcome message.
+- Two new emails, same no-op-without-`RESEND_API_KEY` pattern as Phase 3: "welcome" (on signup) and "reservation confirmed" (on reserve).
+- A `security-auditor` pass on the new client-writable `orders` path (the first phase where a client, not just staff, writes to commerce data) found and fixed: a pre-existing `profiles` RLS gap that let any signed-in client self-escalate their own `role` to `admin` (migration `0011` adds a trigger blocking non-admin role changes, closing a hole that predated this phase but became commercially exploitable now that a client-writable order table exists); `cancelOrder` initially had no status-transition guard or ownership/rowcount check (fixed — see DECISIONS.md); the reservation TOCTOU race (fixed via the unique index above).
+- Along the way, fixed a real, pre-existing tooling bug: `npm run seed` was silently reseeding the **hosted** Supabase project instead of local (`.env.local` vs `.env.development.local` mismatch) — every `db:reset` had looked successful while leaving local empty. Fixed and documented in DECISIONS.md.
+- Verified end-to-end via Playwright against local Supabase: a client favorites a vehicle, saves a search, reserves a vehicle (confirmed order + vehicle-status-badge flip everywhere it's shown, confirmation email console-logs), a second client is correctly blocked from reserving the same vehicle; staff sees and cancels the order from `/admin/orders`, vehicle flips back to available; profile + consignee fields save and persist. The self-escalation trigger fix was verified directly against Postgres (blocked as a non-admin, allowed as an admin, normal field edits unaffected).
+
+## Not done yet in Phase 4 (deliberate, see DECISIONS.md)
+
+- No automatic reservation expiry — an expired-but-still-`reserved` hold is flagged for staff in `/admin/orders`, not auto-cancelled (no cron/scheduler in this project yet).
+- No saved-search "new matching vehicle" alert email — the preference is captured, the job isn't built.
+- No PDF invoices, no dedicated `invoices` table/numbering separate from `orders.order_no`.
+- `setOrderStatus` only offers `reserved → awaiting_payment` — the rest of the order lifecycle needs Phase 5's payment verification workflow.
+
 ## Next steps
 
-Start Phase 4 — Client account (favorites, saved searches, orders, invoices, profile/consignee).
+Start Phase 5 — Paiement et shipping (payment-proof upload/verification, shipment tracking) on top of Phase 4's reservation/order foundation.

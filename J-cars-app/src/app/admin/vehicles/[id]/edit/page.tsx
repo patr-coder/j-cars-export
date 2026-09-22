@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { deleteVehicle, duplicateVehicle, updateVehicle } from "@/actions/vehicles";
-import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { PhotoManager } from "@/components/admin/photo-manager";
 import { VehicleForm } from "@/components/admin/vehicle-form";
 import { Button } from "@/components/ui/button";

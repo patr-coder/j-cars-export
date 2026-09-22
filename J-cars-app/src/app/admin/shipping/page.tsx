@@ -7,7 +7,7 @@ import {
   deleteShippingRate,
   setShippingRateActive,
 } from "@/actions/shipping";
-import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

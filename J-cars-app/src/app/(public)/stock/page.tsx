@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 
 import { Pagination } from "@/components/search/pagination";
+import { SaveSearchButton } from "@/components/search/save-search-button";
 import { StockFilters } from "@/components/search/stock-filters";
 import { VehicleCard } from "@/components/vehicle/vehicle-card";
+import { getCurrentUser } from "@/lib/auth/session";
 import { parseVehicleSearchParams } from "@/lib/catalog/filters";
 import { getLocations, getMakes, getModels, getVehicles } from "@/lib/catalog/queries";
+import { getFavoriteVehicleIds } from "@/lib/favorites/queries";
 
 export const metadata: Metadata = {
   title: "Stock",
@@ -19,11 +22,13 @@ export default async function StockPage({
   const rawParams = await searchParams;
   const filters = parseVehicleSearchParams(rawParams);
 
-  const [{ vehicles, total, page, pageSize }, makes, models, locations] = await Promise.all([
+  const user = await getCurrentUser();
+  const [{ vehicles, total, page, pageSize }, makes, models, locations, favoriteIds] = await Promise.all([
     getVehicles(filters),
     getMakes(),
     getModels(),
     getLocations(),
+    user ? getFavoriteVehicleIds(user.id) : Promise.resolve(new Set<string>()),
   ]);
 
   return (
@@ -32,9 +37,12 @@ export default async function StockPage({
 
       <StockFilters makes={makes} models={models} locations={locations} defaults={filters} />
 
-      <p className="my-4 text-sm text-muted-foreground">
-        {total} vehicle{total === 1 ? "" : "s"} found
-      </p>
+      <div className="my-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          {total} vehicle{total === 1 ? "" : "s"} found
+        </p>
+        <SaveSearchButton filters={filters} isSignedIn={!!user} />
+      </div>
 
       {vehicles.length === 0 ? (
         <div className="rounded-xl border p-12 text-center text-muted-foreground">
@@ -43,7 +51,12 @@ export default async function StockPage({
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {vehicles.map((vehicle) => (
-            <VehicleCard key={vehicle.id} vehicle={vehicle} />
+            <VehicleCard
+              key={vehicle.id}
+              vehicle={vehicle}
+              isFavorited={favoriteIds.has(vehicle.id)}
+              isSignedIn={!!user}
+            />
           ))}
         </div>
       )}

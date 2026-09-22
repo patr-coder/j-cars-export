@@ -11,4 +11,10 @@ export type Profile = {
   preferred_currency: string;
   role: Role;
   created_at: string;
+  consignee_name: string | null;
+  consignee_company: string | null;
+  consignee_address: string | null;
+  consignee_city: string | null;
+  consignee_country: string | null;
+  consignee_phone: string | null;
 };

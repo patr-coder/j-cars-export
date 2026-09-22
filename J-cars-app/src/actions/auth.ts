@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { sendEmail } from "@/lib/email/resend";
+import { welcomeEmail } from "@/lib/email/templates";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthActionState = { error: string | null; success?: boolean };
@@ -63,6 +65,11 @@ export async function signUp(
   if (error) {
     return { error: error.message };
   }
+
+  await sendEmail({
+    to: parsed.data.email,
+    ...welcomeEmail({ name: parsed.data.fullName }),
+  });
 
   redirect("/account");
 }

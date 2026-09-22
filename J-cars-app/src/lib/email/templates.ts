@@ -23,6 +23,47 @@ const WRAP = (title: string, body: string) => `
   </div>
 `;
 
+export function welcomeEmail(params: { name: string }) {
+  const subject = "Welcome to J-cars Exports";
+  const html = WRAP(
+    "Welcome aboard",
+    `
+      <p>Hi ${escapeHtml(params.name)},</p>
+      <p>
+        Your account is ready. Browse our stock, save favorites, and request a quote whenever
+        you're ready — we're here to help with the whole export process.
+      </p>
+    `,
+  );
+  return { subject, html };
+}
+
+export function reservationConfirmedEmail(params: {
+  name: string;
+  vehicleLabel: string;
+  orderNo: string;
+  totalUsd: number;
+  reservedUntil: string | null;
+}) {
+  const subject = `Reservation confirmed — ${params.vehicleLabel}`;
+  const html = WRAP(
+    "Reservation confirmed",
+    `
+      <p>Hi ${escapeHtml(params.name)},</p>
+      <p>
+        We've reserved the ${params.vehicleLabel} for you (order ${params.orderNo}), total
+        ${formatCurrency(params.totalUsd)}.
+      </p>
+      ${
+        params.reservedUntil
+          ? `<p style="color: #666; font-size: 13px;">This hold is valid until ${new Date(params.reservedUntil).toLocaleString()} — our team will follow up before then.</p>`
+          : ""
+      }
+    `,
+  );
+  return { subject, html };
+}
+
 export function inquiryReceivedEmail(params: { name: string; vehicleLabel: string | null }) {
   const subject = "We've received your request — J-cars Exports";
   const html = WRAP(

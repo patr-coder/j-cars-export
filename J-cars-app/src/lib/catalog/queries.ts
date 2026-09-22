@@ -44,7 +44,9 @@ export type VehicleDetail = VehicleListItem & {
   createdAt: string;
 };
 
-const LIST_SELECT = `
+// Exported so favorites/orders queries can join the same vehicle shape
+// (e.g. `.in("id", ids)`) without duplicating this select string.
+export const VEHICLE_LIST_SELECT = `
   id, ref_no, trim, year, price_usd, sale_price_usd, mileage_km,
   fuel_type, transmission, body_type, status, created_at,
   make:makes ( name, slug ),
@@ -52,13 +54,14 @@ const LIST_SELECT = `
   location:locations ( city, country ),
   vehicle_images ( public_url, is_primary, sort_order )
 `;
+const LIST_SELECT = VEHICLE_LIST_SELECT;
 
 type ImageRow = { public_url: string; is_primary: boolean; sort_order: number };
 
 // Raw shapes from the two `.select()` strings above — cast to these rather
 // than fighting Supabase's embedded-relation type inference (see
 // DECISIONS.md re: the seed script's earlier friction with the same thing).
-type RawListRow = {
+export type RawVehicleListRow = {
   id: string;
   ref_no: string;
   trim: string | null;
@@ -83,7 +86,7 @@ function sortedImages<T extends ImageRow>(images: T[] | null | undefined): T[] {
   );
 }
 
-function mapListRow(row: RawListRow): VehicleListItem {
+export function mapVehicleListRow(row: RawVehicleListRow): VehicleListItem {
   return {
     id: row.id,
     refNo: row.ref_no,
@@ -128,7 +131,7 @@ export async function getRecentVehicles(limit = 6): Promise<VehicleListItem[]> {
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw new Error(`getRecentVehicles: ${error.message}`);
-  return ((data as unknown as RawListRow[]) ?? []).map(mapListRow);
+  return ((data as unknown as RawVehicleListRow[]) ?? []).map(mapVehicleListRow);
 }
 
 export async function getVehicles(params: VehicleSearchParams): Promise<{
@@ -189,7 +192,7 @@ export async function getVehicles(params: VehicleSearchParams): Promise<{
   if (error) throw new Error(`getVehicles: ${error.message}`);
 
   return {
-    vehicles: ((data as unknown as RawListRow[]) ?? []).map(mapListRow),
+    vehicles: ((data as unknown as RawVehicleListRow[]) ?? []).map(mapVehicleListRow),
     total: count ?? 0,
     page,
     pageSize: PAGE_SIZE,
@@ -311,10 +314,10 @@ const ADMIN_LIST_SELECT = `
   vehicle_images ( public_url, is_primary, sort_order )
 `;
 
-type RawAdminListRow = RawListRow & { published: boolean };
+type RawAdminListRow = RawVehicleListRow & { published: boolean };
 
 function mapAdminListRow(row: RawAdminListRow): AdminVehicleListItem {
-  return { ...mapListRow(row), published: row.published };
+  return { ...mapVehicleListRow(row), published: row.published };
 }
 
 export async function getAdminVehicles(filters: AdminVehicleFilters): Promise<{

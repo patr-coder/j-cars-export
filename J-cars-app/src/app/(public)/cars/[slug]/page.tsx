@@ -3,14 +3,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Fragment } from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InquiryForm } from "@/components/quote/inquiry-form";
 import { PriceCalculator } from "@/components/quote/price-calculator";
+import { VehicleStatusBadge } from "@/components/status-badge";
+import { FavoriteButton } from "@/components/vehicle/favorite-button";
+import { ReserveButton } from "@/components/vehicle/reserve-button";
 import { VehicleGallery } from "@/components/vehicle/vehicle-gallery";
-import { getCurrentProfile } from "@/lib/auth/session";
+import { getCurrentProfile, getCurrentUser } from "@/lib/auth/session";
 import { formatCurrency } from "@/lib/currency/format";
 import { getVehicleBySlug } from "@/lib/catalog/queries";
+import { getFavoriteVehicleIds } from "@/lib/favorites/queries";
 import { getActiveShippingRatesForLocation } from "@/lib/shipping/queries";
 
 export async function generateMetadata({
@@ -51,9 +54,11 @@ export default async function VehicleDetailPage({
   const vehicle = await getVehicleBySlug(slug);
   if (!vehicle) notFound();
 
-  const [profile, shippingRates] = await Promise.all([
+  const user = await getCurrentUser();
+  const [profile, shippingRates, favoriteIds] = await Promise.all([
     getCurrentProfile(),
     vehicle.locationId ? getActiveShippingRatesForLocation(vehicle.locationId) : Promise.resolve([]),
+    user ? getFavoriteVehicleIds(user.id) : Promise.resolve(new Set<string>()),
   ]);
 
   const price = vehicle.salePriceUsd ?? vehicle.priceUsd;
@@ -119,9 +124,9 @@ export default async function VehicleDetailPage({
           </div>
 
           {vehicle.status !== "available" && (
-            <Badge variant="secondary" className="w-fit capitalize">
-              {vehicle.status.replace("_", " ")}
-            </Badge>
+            <div className="w-fit">
+              <VehicleStatusBadge status={vehicle.status} />
+            </div>
           )}
 
           <div className="flex items-baseline gap-3">
@@ -134,19 +139,27 @@ export default async function VehicleDetailPage({
             <span className="text-sm text-muted-foreground">FOB</span>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-start gap-3">
             <Button asChild>
               <a href="#quote">Get Quote</a>
             </Button>
-            <Button variant="outline" disabled title="Available from Phase 5">
-              Reserve Vehicle
-            </Button>
+            <ReserveButton
+              vehicleId={vehicle.id}
+              isSignedIn={!!user}
+              isAvailable={vehicle.status === "available"}
+            />
             <Button variant="outline" disabled title="Available from Phase 6">
               WhatsApp
             </Button>
             <Button asChild variant="ghost">
               <Link href={`/contact?vehicle=${vehicle.slug}`}>Ask a Question</Link>
             </Button>
+            <FavoriteButton
+              vehicleId={vehicle.id}
+              isFavorited={favoriteIds.has(vehicle.id)}
+              isSignedIn={!!user}
+              path={`/cars/${vehicle.slug}`}
+            />
           </div>
 
           {vehicle.description && (

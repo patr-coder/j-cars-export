@@ -1,5 +1,5 @@
 import { createLocation, createMake, createModel, deleteLocation, deleteMake, deleteModel } from "@/actions/catalog";
-import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

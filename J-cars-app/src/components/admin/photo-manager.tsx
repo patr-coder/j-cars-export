@@ -10,7 +10,7 @@ import {
   updateVehicleImageAlt,
   uploadVehicleImages,
 } from "@/actions/vehicle-images";
-import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { AdminVehicleImage } from "@/lib/catalog/queries";

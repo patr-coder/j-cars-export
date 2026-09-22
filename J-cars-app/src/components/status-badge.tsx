@@ -54,3 +54,22 @@ const QUOTE_STATUS_VARIANT: Record<string, BadgeVariant> = {
 export function QuoteStatusBadge({ status }: { status: string }) {
   return <StatusBadge status={status} variant={QUOTE_STATUS_VARIANT[status] ?? "outline"} />;
 }
+
+// reserved/awaiting_payment: needs follow-up. paid/completed: success.
+// preparing_export/booked_shipping/shipped/arrived: in progress (Phase 5
+// territory, not yet reachable from this app's own actions). cancelled: dropped.
+const ORDER_STATUS_VARIANT: Record<string, BadgeVariant> = {
+  reserved: "warning",
+  awaiting_payment: "warning",
+  paid: "success",
+  preparing_export: "default",
+  booked_shipping: "default",
+  shipped: "default",
+  arrived: "default",
+  completed: "success",
+  cancelled: "destructive",
+};
+
+export function OrderStatusBadge({ status }: { status: string }) {
+  return <StatusBadge status={status} variant={ORDER_STATUS_VARIANT[status] ?? "outline"} />;
+}

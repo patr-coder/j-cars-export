@@ -2,14 +2,18 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { VehicleCard } from "@/components/vehicle/vehicle-card";
+import { getCurrentUser } from "@/lib/auth/session";
 import { BODY_TYPES } from "@/lib/catalog/constants";
 import { getMakes, getRecentVehicles, getVehicleStats } from "@/lib/catalog/queries";
+import { getFavoriteVehicleIds } from "@/lib/favorites/queries";
 
 export default async function HomePage() {
-  const [stats, recent, makes] = await Promise.all([
+  const user = await getCurrentUser();
+  const [stats, recent, makes, favoriteIds] = await Promise.all([
     getVehicleStats(),
     getRecentVehicles(6),
     getMakes(),
+    user ? getFavoriteVehicleIds(user.id) : Promise.resolve(new Set<string>()),
   ]);
 
   return (
@@ -44,7 +48,12 @@ export default async function HomePage() {
           </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {recent.map((vehicle) => (
-              <VehicleCard key={vehicle.id} vehicle={vehicle} />
+              <VehicleCard
+                key={vehicle.id}
+                vehicle={vehicle}
+                isFavorited={favoriteIds.has(vehicle.id)}
+                isSignedIn={!!user}
+              />
             ))}
           </div>
         </section>

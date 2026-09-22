@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { deleteVehicle, setVehiclePublished } from "@/actions/vehicles";
-import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { PublishedBadge, VehicleStatusBadge } from "@/components/status-badge";
 import { Pagination } from "@/components/search/pagination";
 import { Button } from "@/components/ui/button";
