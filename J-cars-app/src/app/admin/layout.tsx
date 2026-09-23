@@ -52,7 +52,24 @@ export default async function AdminLayout({
           ))}
         </nav>
       </aside>
-      <main className="flex-1 px-6 py-8">{children}</main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* The sidebar is desktop-only; on small screens the same links scroll
+            horizontally so every admin page stays reachable. */}
+        <nav className="flex gap-1 overflow-x-auto border-b px-3 py-2 md:hidden" aria-label="Admin">
+          {nav.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium text-foreground/80 hover:bg-muted hover:text-foreground"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        <main id="main" className="min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-8">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

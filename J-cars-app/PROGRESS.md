@@ -145,6 +145,42 @@ For local development, `.env.development.local` (gitignored, not checked in) hol
 - No rich text or images inside CMS pages, only headings, paragraphs and bullets.
 - Migration `0013` isn't applied to the hosted project yet (nor `0012`).
 
+## Completed — Phase 7 (Hardening)
+
+- **E2E tests** (`tests/e2e/`, Playwright, desktop + Pixel 7): public catalogue (home sections, filters, promotions, vehicle detail, brand/model pages, CMS pages, not-found), SEO plumbing (sitemap, robots, canonical, JSON-LD), security headers, access control (all protected routes redirect signed-out visitors; the anon key can't read the audit log or call `dashboard_metrics`), guest inquiry, and the full password-reset flow (email read from Mailpit, link opened in a second browser context, single use). **48 passing, 5 skipped**: `admin.spec.ts` needs `E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD` in the environment. Run with `npm run test:e2e` (local Supabase + `npm run dev`).
+- **Security**:
+  - Password reset was broken (the emailed link pointed at a page that didn't exist). Rebuilt as `/auth/callback` (token_hash or PKCE code, same-site `next` only) plus `/reset-password`, and it works across devices.
+  - `security-auditor` pass: setting a new password now requires a recovery sign-in from the last 15 minutes (`amr` claim), not just any session. Sign-up no longer confirms existing emails. The backup script uses `umask 077`.
+  - Found and fixed a stored-XSS path: vehicle descriptions went into JSON-LD unescaped (`serializeJsonLd`).
+  - Password policy: 10+ characters with letters and digits (app and local Auth config).
+  - Security headers (frame/nosniff/referrer/permissions/HSTS/CSP subset), `X-Powered-By` removed.
+  - `npm audit`: 0 vulnerabilities.
+- **Performance**: next/image optimization (AVIF/WebP, `sizes`) for hosted Storage photos. Migration `0014`: partial listing index, trigram index for keyword search (planner uses it), status/date indexes for the admin inboxes and dashboard. Measured on a production build against local data: LCP 0.12–0.6 s desktop, **0.96–1.19 s on simulated mobile 4G with 4× CPU throttling** (spec target < 2.5 s).
+- **Accessibility**: axe WCAG 2.1 AA (serious/critical) clean on 10 public/auth pages at desktop and phone sizes. Added a skip-to-content link and an `h1` on every auth page (card titles were `div`s). The admin and account navigations were hidden on phones, so staff and clients couldn't reach most pages there; they now scroll horizontally. Vehicle-card links have full accessible names.
+- **SEO**: indexable `/stock/[make]` and `/stock/[make]/[model]` pages (own title, description, canonical, in the sitemap when they have stock). `metadataBase` + default OpenGraph/Twitter. Canonical on vehicle, CMS and stock pages. AutoDealer JSON-LD on the home page. Missing records are soft 404s with `noindex` (documented streaming behavior).
+- **Backup/restore**: `scripts/backup-db.sh` (roles/schema/data dump from `DATABASE_URL` or `--local`) + `docs/BACKUP_RESTORE.md`. Restore was tested into a scratch database: every row count, `auth.users`, the 45 RLS policies and the 17 audit triggers matched.
+- Unit tests: 99 passing (added link/redirect guards, password policy, recovery freshness, JSON-LD escaping, image optimization).
+
+## Owner actions before go-live
+
+1. **Move `recovery-codes.txt` out of the project folder** (into 1Password) and rotate the database password it contains.
+2. Apply migrations `0012`, `0013`, `0014` to the hosted project (take a backup first: `docs/BACKUP_RESTORE.md`).
+3. In the hosted Supabase dashboard:
+   - paste `supabase/templates/recovery.html` into Auth → Email Templates → Reset password
+   - add `https://<domain>/**` to the Redirect URLs, and set Site URL to the real domain
+   - set the password minimum to 10 with letters + digits, and enable "secure password change"
+   - keep email confirmations on
+4. Fill in the real **bank details**, contact/WhatsApp and social links in `/admin/settings`, and review the CMS pages in `/admin/content`.
+5. Add `RESEND_API_KEY` (emails are console-logged until then) and set `NEXT_PUBLIC_SITE_URL` in Vercel.
+6. Turn on MFA for admin accounts (spec §14 recommends it; not enforced in code yet).
+
+## Still open (deliberate, see DECISIONS.md)
+
+- No script-src CSP (would need per-request nonces).
+- No cron jobs: reservation expiry, saved-search alerts, promotion dates.
+- No account deactivation, no MFA enforcement, no i18n.
+- The admin E2E specs haven't been run in this session (they need credentials).
+
 ## Next steps
 
-Phase 7 — Hardening (E2E tests, security review, performance, accessibility, SEO audit, backup/restore).
+The MVP phases in spec §19 are done. Next: go-live checklist above, then the spec §24 V2 features.

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -180,7 +181,7 @@ export function StockFilters({
 
       <div className="flex justify-end gap-2">
         <Button asChild variant="ghost">
-          <a href="/stock">Clear</a>
+          <Link href="/stock">Clear</Link>
         </Button>
         <Button type="submit">Apply filters</Button>
       </div>

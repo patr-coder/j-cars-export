@@ -54,3 +54,4 @@ Prix/
 # accidental secret dump found mid-session (auth recovery codes + a
 # plaintext db password) — never track this, see chat/PROGRESS.md
 recovery-codes.txt
+backups/

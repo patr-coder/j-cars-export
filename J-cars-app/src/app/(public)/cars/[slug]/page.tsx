@@ -15,6 +15,7 @@ import { whatsappHref } from "@/lib/contact/whatsapp";
 import { formatCurrency } from "@/lib/currency/format";
 import { getVehicleBySlug } from "@/lib/catalog/queries";
 import { getFavoriteVehicleIds } from "@/lib/favorites/queries";
+import { serializeJsonLd } from "@/lib/seo/json-ld";
 import { getSetting } from "@/lib/settings/queries";
 import { getActiveShippingRatesForLocation } from "@/lib/shipping/queries";
 
@@ -33,6 +34,7 @@ export async function generateMetadata({
   return {
     title,
     description,
+    alternates: { canonical: `/cars/${vehicle.slug}` },
     openGraph: {
       title,
       description,
@@ -116,7 +118,7 @@ export default async function VehicleDetailPage({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
         <VehicleGallery images={vehicle.images} alt={title} />

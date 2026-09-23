@@ -5,6 +5,7 @@ import Link from "next/link";
 import { VehicleStatusBadge } from "@/components/status-badge";
 import { FavoriteButton } from "@/components/vehicle/favorite-button";
 import { formatCurrency } from "@/lib/currency/format";
+import { canOptimize } from "@/lib/images/optimize";
 import type { VehicleListItem } from "@/lib/catalog/queries";
 
 export function VehicleCard({
@@ -24,7 +25,7 @@ export function VehicleCard({
       {/* Full-card click target, kept behind the favorite button (below) so
           the button gets its own click instead of nesting a <button> inside
           this <a>, which HTML doesn't allow. */}
-      <Link href={`/cars/${vehicle.slug}`} className="absolute inset-0 z-0" aria-label={vehicle.makeName} />
+      <Link href={`/cars/${vehicle.slug}`} className="absolute inset-0 z-0" aria-label={`${vehicle.year} ${vehicle.makeName} ${vehicle.modelName}`} />
 
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
         {vehicle.primaryImageUrl ? (
@@ -32,7 +33,8 @@ export function VehicleCard({
             src={vehicle.primaryImageUrl}
             alt={`${vehicle.makeName} ${vehicle.modelName}`}
             fill
-            unoptimized
+            unoptimized={!canOptimize(vehicle.primaryImageUrl)}
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
             className="pointer-events-none object-cover transition-transform group-hover:scale-105"
           />
         ) : (

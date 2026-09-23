@@ -233,3 +233,39 @@ Both columns existed since Phase 0/2. A vehicle is "on promotion" when it's feat
 ## Phase 6: user management is role changes only; no account deactivation yet
 
 `/admin/customers` lists every profile (admin and sales can read profiles, per `0011`) with order counts, and lets an admin change a role. An admin can't change their own role (so the last admin can't lock everyone out), and `prevent_role_self_escalation` (`0011`) still blocks non-admins in the DB. Deactivating an account (spec §4.6) needs the Supabase Auth admin API (ban user) with the service role key from a server-only path. It's deferred rather than half-built. For now, an admin can demote a staff account to `client`, which removes all staff access. The admin sidebar now only shows the links the signed-in role can open.
+
+## Phase 7: password reset uses a token_hash email link, verified in /auth/callback
+
+The forgot-password email pointed at `/reset-password`, a page that didn't exist, so every reset ended on a 404. Fixing it surfaced a second problem: `@supabase/ssr` uses PKCE, so Supabase's default reset link only works in the browser that requested it (the code verifier lives in a cookie). A client who asks on a laptop and opens the email on a phone would always get "invalid link". The recovery email template (`supabase/templates/recovery.html`, wired in `supabase/config.toml`) now links to `/auth/callback?token_hash=…&type=recovery&next=/reset-password`, which calls `verifyOtp`. PKCE `code` links are still accepted as a fallback. `next` only accepts same-site paths (`safeNextPath`, table-driven tests including backslash and tab tricks). An E2E test requests a reset, reads the email from Mailpit, and opens it in a separate browser context to prove the cross-device case. It also checks that the link is single-use. **Owner action:** paste the same template into the hosted project (Auth → Email Templates → Reset password), and add `https://<domain>/**` to Auth → URL Configuration → Redirect URLs.
+
+## Phase 7: setting a new password requires a fresh recovery sign-in
+
+`updatePassword` sets a password without asking for the old one, so the Phase 7 `security-auditor` flagged that any live session (a stolen cookie, an unlocked shared computer) could take over the account through it. It now reads the session's `amr` claim (`getClaims()`) and requires a `recovery` or `otp` entry from the last 15 minutes (`isFreshRecovery`). Both values were checked against the local stack rather than assumed: a PKCE exchange records `recovery`, a `token_hash` verification records `otp`. The app offers no OTP or magic-link sign-in, so `otp` can only come from an emailed link. `/reset-password` applies the same check before showing the form. `secure_password_change = true` in `config.toml` is a second layer, but only locally; it should also be enabled on the hosted project.
+
+## Phase 7: password policy is 10+ characters with letters and digits
+
+`passwordSchema` (`src/lib/auth/password.ts`) is used for sign-up and reset: 10 to 72 characters (bcrypt ignores the rest), at least one letter and one digit. `supabase/config.toml` enforces the same rule in Auth itself. **Owner action:** set the same values in the hosted dashboard (Auth → Providers → Email → password requirements). Existing accounts keep their passwords until they change them. Sign-up no longer echoes Supabase's "User already registered" message, to avoid confirming which emails have accounts. Full protection needs email confirmations on (the hosted default), where Supabase answers the same way for new and existing emails. Login throttling relies on Supabase Auth's per-IP limit (`sign_in_sign_ups`: 30 per 5 minutes). There's no app-level throttle on top.
+
+## Phase 7: security headers without a script CSP
+
+`next.config.ts` sends `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, a restrictive `Permissions-Policy`, HSTS, and a CSP limited to `frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'`. A full `script-src` CSP would need a per-request nonce on every page (Next's inline bootstrap scripts), which forces dynamic rendering everywhere and is easy to break. It's deferred until there's a concrete need. `poweredByHeader` is off. JSON-LD is serialized with `serializeJsonLd()`, which escapes `<` and U+2028/2029. Before, a vehicle description containing `</script>` could break out of the structured-data tag on the public vehicle page (stored XSS from the admin side).
+
+## Phase 7: missing records are soft 404s (200 + noindex)
+
+`(public)/loading.tsx` makes public routes stream, and once streaming starts the status code can't change. So `notFound()` on `/cars/[slug]` or `/stock/[make]` renders the not-found page with a 200 and `<meta name="robots" content="noindex">`, which is documented Next.js behavior. Search engines don't index these pages. The E2E suite checks for the `noindex` tag and the not-found content rather than the status. A real 404 status would mean either dropping the loading skeleton or checking slugs in `proxy.ts`, which costs a database lookup on every request. Neither was worth it.
+
+## Phase 7: brand/model landing pages at /stock/[make] and /stock/[make]/[model]
+
+Spec §12 asks for indexable brand and model pages. They reuse the `/stock` view (`StockView`) with the make/model fixed, have their own title, description and canonical, and are listed in the sitemap only when they currently have stock. The filter form still submits to `/stock`. A `/stock?make=x` search whose only filters are make/model declares the brand page as its canonical, so crawlers don't index every filter combination. The home "Shop by make" links now point at the brand pages.
+
+## Phase 7: images are optimized only when served over https
+
+Every `next/image` used `unoptimized`. The likely reason is that Next's optimizer refuses loopback hosts, so local Supabase photos (`http://127.0.0.1`) can't go through it. `canOptimize()` now enables optimization for `https` URLs only, meaning hosted Supabase Storage, allowed by a `remotePatterns` entry scoped to this project's `/storage/v1/object/public/**`. In development photos pass through as before. In production they're resized and served as AVIF/WebP with proper `sizes`. The deprecated `priority` prop was replaced with `preload` on the gallery's main image.
+
+## Phase 7: indexes for the hot queries (migration 0014)
+
+A partial index on `vehicles (created_at desc) where published and deleted_at is null` for every public listing. A trigram GIN index on `vehicles.description` for the `/stock` keyword search (`ilike '%q%'`, which no btree can serve; `pg_trgm` has been enabled since 0001, and the planner uses it). Status/date indexes on inquiries, orders, payments and quotes for the admin inboxes and `dashboard_metrics()`.
+
+## Phase 7: E2E suite runs against local Supabase; signed-in specs need credentials from the environment
+
+`tests/e2e/` covers the public catalogue, SEO plumbing (sitemap, robots, canonical, JSON-LD), security headers, access control (every protected route redirects signed-out visitors; anon REST can't read the audit log or call `dashboard_metrics`), the guest inquiry, the password reset flow, and axe WCAG 2.1 AA checks (serious/critical) on public and auth pages at desktop and phone sizes, plus one `h1` per page. Admin specs (`admin.spec.ts`) sign in with `E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD` from the environment and are skipped without them, so no credentials live in the repo. Locally, the dev-only seeded accounts listed in PROGRESS.md work.

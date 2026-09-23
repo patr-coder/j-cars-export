@@ -25,7 +25,18 @@ export default async function AccountLayout({
   return (
     <>
       <Header />
-      <main className="mx-auto flex w-full max-w-7xl flex-1 gap-8 px-4 py-10">
+      <nav className="flex gap-1 overflow-x-auto border-b px-3 py-2 md:hidden" aria-label="Account">
+        {ACCOUNT_NAV.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium text-foreground/80 hover:bg-muted hover:text-foreground"
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+      <main id="main" className="mx-auto flex w-full max-w-7xl flex-1 gap-8 px-4 py-10">
         <aside className="hidden w-48 shrink-0 md:block">
           <nav className="flex flex-col gap-1" aria-label="Account">
             {ACCOUNT_NAV.map((item) => (

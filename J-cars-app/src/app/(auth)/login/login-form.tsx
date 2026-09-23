@@ -24,7 +24,9 @@ export function LoginForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Log in</CardTitle>
+        <CardTitle>
+          <h1>Log in</h1>
+        </CardTitle>
         <CardDescription>Access your favorites, quotes, and orders.</CardDescription>
       </CardHeader>
       <form action={formAction}>

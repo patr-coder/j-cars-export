@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
@@ -524,6 +526,29 @@ export async function getMakes(): Promise<{ id: string; name: string; slug: stri
   if (error) throw new Error(`getMakes: ${error.message}`);
   return data ?? [];
 }
+
+// cache(): generateMetadata and the page both resolve the same slug.
+export const getMakeBySlug = cache(async (slug: string): Promise<{ id: string; name: string; slug: string } | null> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("makes").select("id, name, slug").eq("slug", slug).maybeSingle();
+  if (error) throw new Error(`getMakeBySlug: ${error.message}`);
+  return data;
+});
+
+export const getModelBySlug = cache(async (
+  makeId: string,
+  slug: string,
+): Promise<{ id: string; name: string; slug: string } | null> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("models")
+    .select("id, name, slug")
+    .eq("make_id", makeId)
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error) throw new Error(`getModelBySlug: ${error.message}`);
+  return data;
+});
 
 export async function getModels(): Promise<
   { id: string; makeId: string; name: string; slug: string }[]

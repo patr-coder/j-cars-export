@@ -1,5 +1,7 @@
 import Image from "next/image";
 
+import { canOptimize } from "@/lib/images/optimize";
+
 export function VehicleGallery({
   images,
   alt,
@@ -24,8 +26,9 @@ export function VehicleGallery({
           src={main.url}
           alt={main.alt ?? alt}
           fill
-          unoptimized
-          priority
+          unoptimized={!canOptimize(main.url)}
+          preload
+          sizes="(min-width: 1024px) 50vw, 100vw"
           className="object-cover"
         />
       </div>
@@ -33,7 +36,14 @@ export function VehicleGallery({
         <div className="grid grid-cols-4 gap-2">
           {rest.map((img) => (
             <div key={img.url} className="relative aspect-[4/3] overflow-hidden rounded-lg bg-muted">
-              <Image src={img.url} alt={img.alt ?? alt} fill unoptimized className="object-cover" />
+              <Image
+                src={img.url}
+                alt={img.alt ?? alt}
+                fill
+                unoptimized={!canOptimize(img.url)}
+                sizes="(min-width: 1024px) 12vw, 25vw"
+                className="object-cover"
+              />
             </div>
           ))}
         </div>

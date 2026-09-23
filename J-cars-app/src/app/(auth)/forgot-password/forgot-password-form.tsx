@@ -27,7 +27,9 @@ export function ForgotPasswordForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Reset your password</CardTitle>
+        <CardTitle>
+          <h1>Reset your password</h1>
+        </CardTitle>
         <CardDescription>
           We&apos;ll email you a link to choose a new password.
         </CardDescription>

@@ -7,6 +7,7 @@ import { BODY_TYPES } from "@/lib/catalog/constants";
 import { getMakes, getPromotedVehicles, getRecentVehicles, getVehicleStats } from "@/lib/catalog/queries";
 import { whatsappHref } from "@/lib/contact/whatsapp";
 import { getFavoriteVehicleIds } from "@/lib/favorites/queries";
+import { serializeJsonLd } from "@/lib/seo/json-ld";
 import { getSetting } from "@/lib/settings/queries";
 import { getCountries, getPorts } from "@/lib/shipping/queries";
 import type { VehicleListItem } from "@/lib/catalog/queries";
@@ -65,9 +66,21 @@ export default async function HomePage() {
     portsByCountry.set(port.countryId, [...(portsByCountry.get(port.countryId) ?? []), port.name]);
   }
   const servedCountries = countries.filter((c) => portsByCountry.has(c.id));
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "AutoDealer",
+    name: "J-cars Exports",
+    url: siteUrl,
+    logo: `${siteUrl}/brand/jcars-logo.png`,
+    ...(contact.email && { email: contact.email }),
+    ...(contact.phone && { telephone: contact.phone }),
+    sameAs: [contact.facebook, contact.instagram, contact.youtube, contact.tiktok, contact.x].filter(Boolean),
+  };
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(organizationJsonLd) }} />
       <section className="mx-auto flex max-w-7xl flex-col items-start gap-6 px-4 py-20 sm:py-24">
         <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-balance sm:text-5xl">{hero.title}</h1>
         <p className="max-w-xl text-lg text-muted-foreground">
@@ -130,7 +143,7 @@ export default async function HomePage() {
           <h2 className="mb-4 text-xl font-semibold">Shop by make</h2>
           <div className="flex flex-wrap gap-2">
             {makes.map((make) => (
-              <Link key={make.id} href={`/stock?make=${make.slug}`} className="rounded-full border px-4 py-1.5 text-sm hover:bg-muted">
+              <Link key={make.id} href={`/stock/${make.slug}`} className="rounded-full border px-4 py-1.5 text-sm hover:bg-muted">
                 {make.name}
               </Link>
             ))}

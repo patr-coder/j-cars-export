@@ -24,7 +24,9 @@ export function RegisterForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Create your account</CardTitle>
+        <CardTitle>
+          <h1>Create your account</h1>
+        </CardTitle>
         <CardDescription>Save favorites and track your orders.</CardDescription>
       </CardHeader>
       <form action={formAction}>
@@ -44,9 +46,14 @@ export function RegisterForm() {
               name="password"
               type="password"
               autoComplete="new-password"
-              minLength={8}
+              minLength={10}
+              maxLength={72}
               required
+              aria-describedby="password-help"
             />
+            <p id="password-help" className="text-xs text-muted-foreground">
+              At least 10 characters, with letters and digits.
+            </p>
           </div>
           {state.error && (
             <p role="alert" className="text-sm text-destructive">
