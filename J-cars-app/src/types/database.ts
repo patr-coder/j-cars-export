@@ -1009,6 +1009,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      dashboard_metrics: { Args: never; Returns: Json }
       get_my_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]

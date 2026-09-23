@@ -11,9 +11,11 @@ import { FavoriteButton } from "@/components/vehicle/favorite-button";
 import { ReserveButton } from "@/components/vehicle/reserve-button";
 import { VehicleGallery } from "@/components/vehicle/vehicle-gallery";
 import { getCurrentProfile, getCurrentUser } from "@/lib/auth/session";
+import { whatsappHref } from "@/lib/contact/whatsapp";
 import { formatCurrency } from "@/lib/currency/format";
 import { getVehicleBySlug } from "@/lib/catalog/queries";
 import { getFavoriteVehicleIds } from "@/lib/favorites/queries";
+import { getSetting } from "@/lib/settings/queries";
 import { getActiveShippingRatesForLocation } from "@/lib/shipping/queries";
 
 export async function generateMetadata({
@@ -55,15 +57,17 @@ export default async function VehicleDetailPage({
   if (!vehicle) notFound();
 
   const user = await getCurrentUser();
-  const [profile, shippingRates, favoriteIds] = await Promise.all([
+  const [profile, shippingRates, favoriteIds, contact] = await Promise.all([
     getCurrentProfile(),
     vehicle.locationId ? getActiveShippingRatesForLocation(vehicle.locationId) : Promise.resolve([]),
     user ? getFavoriteVehicleIds(user.id) : Promise.resolve(new Set<string>()),
+    getSetting("contact"),
   ]);
 
   const price = vehicle.salePriceUsd ?? vehicle.priceUsd;
   const onSale = vehicle.salePriceUsd !== null && vehicle.salePriceUsd < vehicle.priceUsd;
   const title = `${vehicle.year} ${vehicle.makeName} ${vehicle.modelName}${vehicle.trim ? ` ${vehicle.trim}` : ""}`;
+  const whatsapp = whatsappHref(contact.whatsapp, `Hello, I'm interested in the ${title} (ref ${vehicle.refNo}).`);
 
   const specs: { label: string; value: string | number | null }[] = [
     { label: "Reference", value: vehicle.refNo },
@@ -148,9 +152,13 @@ export default async function VehicleDetailPage({
               isSignedIn={!!user}
               isAvailable={vehicle.status === "available"}
             />
-            <Button variant="outline" disabled title="Available from Phase 6">
-              WhatsApp
-            </Button>
+            {whatsapp && (
+              <Button asChild variant="outline">
+                <a href={whatsapp} target="_blank" rel="noopener noreferrer">
+                  WhatsApp
+                </a>
+              </Button>
+            )}
             <Button asChild variant="ghost">
               <Link href={`/contact?vehicle=${vehicle.slug}`}>Ask a Question</Link>
             </Button>

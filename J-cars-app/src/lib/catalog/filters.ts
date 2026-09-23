@@ -27,7 +27,7 @@ export const SORT_OPTIONS: Record<
   mileage_asc: { label: "Mileage: Lowest first", column: "mileage_km", ascending: true },
 };
 
-// Spec §3.2 also lists cylindrée/seats/color/promotion/status/date-added as
+// Spec §3.2 also lists cylindrée/seats/color/status/date-added as
 // filterable — left out of the UI for now to keep the form usable; adding
 // one is a one-line addition here plus a matching `if` in getVehicles().
 const searchParamsSchema = z.object({
@@ -45,6 +45,7 @@ const searchParamsSchema = z.object({
   bodyType: z.string().optional(),
   steering: z.string().optional(),
   location: z.string().optional(),
+  promotion: z.literal("1").optional(),
   sort: z.enum(SORT_KEYS).optional(),
   page: z.coerce.number().int().min(1).optional(),
 });

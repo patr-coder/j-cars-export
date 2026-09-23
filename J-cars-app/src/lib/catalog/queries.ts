@@ -134,6 +134,26 @@ export async function getRecentVehicles(limit = 6): Promise<VehicleListItem[]> {
   return ((data as unknown as RawVehicleListRow[]) ?? []).map(mapVehicleListRow);
 }
 
+// "Promotion" = featured by staff or carrying a sale price. The `.or()`
+// string is a constant, never built from user input.
+const PROMOTED_FILTER = "featured.eq.true,sale_price_usd.not.is.null";
+
+export async function getPromotedVehicles(limit = 6): Promise<VehicleListItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("vehicles")
+    .select(LIST_SELECT)
+    .eq("published", true)
+    .is("deleted_at", null)
+    .eq("status", "available")
+    .or(PROMOTED_FILTER)
+    .order("featured", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(`getPromotedVehicles: ${error.message}`);
+  return ((data as unknown as RawVehicleListRow[]) ?? []).map(mapVehicleListRow);
+}
+
 export async function getVehicles(params: VehicleSearchParams): Promise<{
   vehicles: VehicleListItem[];
   total: number;
@@ -163,6 +183,7 @@ export async function getVehicles(params: VehicleSearchParams): Promise<{
   if (params.bodyType) query = query.eq("body_type", params.bodyType as Enums["body_type"]);
   if (params.steering) query = query.eq("steering_side", params.steering as Enums["steering_side"]);
   if (params.location) query = query.eq("location_id", params.location);
+  if (params.promotion) query = query.or(PROMOTED_FILTER);
 
   if (params.make) {
     const { data: make } = await supabase
@@ -297,27 +318,28 @@ export async function getVehicleBySlug(slug: string): Promise<VehicleDetail | nu
 // admin/sales/inventory_manager users — same createClient(), no separate
 // admin-scoped Supabase client needed.
 
-export type AdminVehicleListItem = VehicleListItem & { published: boolean };
+export type AdminVehicleListItem = VehicleListItem & { published: boolean; featured: boolean };
 
 export type AdminVehicleFilters = {
   q?: string;
   status?: string;
   published?: "true" | "false";
+  promoted?: boolean;
   page?: number;
 };
 
 const ADMIN_LIST_SELECT = `
   id, ref_no, trim, year, price_usd, sale_price_usd, mileage_km,
-  fuel_type, transmission, body_type, status, published, created_at,
+  fuel_type, transmission, body_type, status, published, featured, created_at,
   make:makes ( name, slug ),
   model:models ( name, slug ),
   vehicle_images ( public_url, is_primary, sort_order )
 `;
 
-type RawAdminListRow = RawVehicleListRow & { published: boolean };
+type RawAdminListRow = RawVehicleListRow & { published: boolean; featured: boolean };
 
 function mapAdminListRow(row: RawAdminListRow): AdminVehicleListItem {
-  return { ...mapVehicleListRow(row), published: row.published };
+  return { ...mapVehicleListRow(row), published: row.published, featured: row.featured };
 }
 
 export async function getAdminVehicles(filters: AdminVehicleFilters): Promise<{
@@ -340,6 +362,7 @@ export async function getAdminVehicles(filters: AdminVehicleFilters): Promise<{
   if (filters.q) query = query.ilike("ref_no", `%${filters.q}%`);
   if (filters.status) query = query.eq("status", filters.status as Enums["vehicle_status"]);
   if (filters.published) query = query.eq("published", filters.published === "true");
+  if (filters.promoted) query = query.or(PROMOTED_FILTER);
 
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;

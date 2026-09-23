@@ -36,7 +36,12 @@ export const vehicleInputSchema = z.object({
   status: z.enum(VEHICLE_STATUSES),
   published: checkbox,
   featured: checkbox,
-});
+})
+  // Mirrors the vehicles_sale_price_below_price check (migration 0013).
+  .refine((v) => v.salePriceUsd === undefined || v.salePriceUsd < v.priceUsd, {
+    message: "The sale price must be lower than the regular price.",
+    path: ["salePriceUsd"],
+  });
 
 export type VehicleInput = z.infer<typeof vehicleInputSchema>;
 

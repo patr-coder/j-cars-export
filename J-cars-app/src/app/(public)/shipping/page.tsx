@@ -1,15 +1,38 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Shipping" };
+import { CmsPageView } from "@/components/cms/cms-page";
+import { getPublishedCmsPage } from "@/lib/settings/queries";
+import { getCountries, getPorts } from "@/lib/shipping/queries";
 
-export default function ShippingPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const page = await getPublishedCmsPage("shipping");
+  return { title: page?.title ?? "Shipping", alternates: { canonical: "/shipping" } };
+}
+
+export default async function ShippingPage() {
+  const [page, countries, ports] = await Promise.all([getPublishedCmsPage("shipping"), getCountries(), getPorts()]);
+  const activePorts = ports.filter((p) => p.active);
+  const served = countries
+    .map((c) => ({ ...c, ports: activePorts.filter((p) => p.countryId === c.id) }))
+    .filter((c) => c.ports.length > 0);
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-16">
-      <h1 className="text-2xl font-semibold">Shipping</h1>
-      <p className="mt-2 text-muted-foreground">
-        Destination countries, ports, and the landed-cost calculator land in
-        Phase 3.
-      </p>
-    </div>
+    <CmsPageView page={page} fallbackTitle="Shipping">
+      {served.length > 0 && (
+        <section className="mt-10" aria-labelledby="ports-heading">
+          <h2 id="ports-heading" className="text-xl font-semibold">Destinations and ports</h2>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+            {served.map((c) => (
+              <li key={c.id} className="rounded-xl border p-4">
+                <p className="font-medium">{c.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {c.ports.map((p) => `${p.name} (${p.code})`).join(", ")}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </CmsPageView>
   );
 }

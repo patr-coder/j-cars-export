@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BODY_TYPES, FUEL_TYPES, STEERING_SIDES, TRANSMISSIONS } from "@/lib/catalog/constants";
@@ -88,6 +89,13 @@ export function StockFilters({
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="flex items-end gap-2 pb-1.5">
+          <Checkbox id="promotion" name="promotion" value="1" defaultChecked={defaults.promotion === "1"} />
+          <Label htmlFor="promotion" className="font-normal">
+            Promotions only
+          </Label>
         </div>
 
         <div className="flex flex-col gap-1">

@@ -124,6 +124,27 @@ For local development, `.env.development.local` (gitignored, not checked in) hol
 - Orphaned proof files: if a payment insert fails after the upload, the file stays in the bucket (clients have no delete right). It can't be reached without a payments row.
 - Migration `0012` isn't applied to the hosted project yet.
 
+## Completed — Phase 6 (CMS et analytics)
+
+- **Dashboard** (`/admin`): spec §4.1 KPIs from one security-definer RPC, `dashboard_metrics()` (migration `0013`). Stock figures go to all staff. Leads today/7 days, open leads, quotes sent, active reservations, payments to review, verified revenue (all-time and 30 days), and top makes/countries by orders go to admin/sales only. Each tile links to the matching admin list. Admins also see the last 8 audit-log entries.
+- **Audit log**: a `security definer` trigger (`audit_row_change`) on 17 business tables records actor, action and the full old/new row. `audit_logs` is append-only: admins can only read it, and nobody can insert, update or delete over the API. `/admin/audit` has table/action/record filters, a per-field before/after diff (`src/lib/audit/diff.ts`), and a "history of this record" link.
+- **CMS** (`/admin/content`, admin-only): alert banner (on/off, message, style, optional link; shown above the header on every public page), home hero (title, subtitle, button), FAQ (add/reorder/delete), testimonials (add/delete; the section stays hidden while empty), and the About / How to Buy / Shipping / Contact pages (`/admin/content/pages/[slug]`: title, body, published, with a preview). Page bodies use a safe plain-text format (`## ` headings, `- ` bullets), rendered without HTML (`src/lib/cms/blocks.ts`).
+- **Settings** (`/admin/settings`, admin-only): contact details and social links (footer, contact page, WhatsApp buttons) and the **bank transfer details**, with a warning while the Phase 5 placeholders are still there.
+- **Promotions** (`/admin/promotions`, admin + inventory_manager): feature/unfeature and set/clear a sale price. The home page gained a "Promotions & featured" section, and `/stock` gained a "Promotions only" filter (`promotion=1`). A DB check (`vehicles_sale_price_below_price`) and the vehicle form both refuse a sale price that isn't below the regular price.
+- **Customers & users** (`/admin/customers`, admin + sales): searchable account list with order counts. Admins can change a role (except their own). The admin sidebar now only lists the pages the signed-in role can open.
+- **Public site**: the home page now has an admin-editable hero, a keyword search box, shop-by-price links, How to buy steps, countries we ship to (derived from active ports), testimonials, FAQ and a WhatsApp/contact call to action. The footer shows contact and social links. `/cars/[slug]` has a working WhatsApp button prefilled with the vehicle and ref. `/shipping` lists destinations and ports. All four content pages render CMS content.
+- All settings are validated with zod on write and parsed with defaults on read (`src/lib/settings/schema.ts`), so a bad row can't break a public page. Admin-entered links must be site-relative or `https://`.
+- Unit tests (TDD): CMS block parser, WhatsApp link builder, audit diff, settings schemas, including a table-driven link-validation suite. 76 tests passing.
+- Security: the `security-auditor` pass found one medium issue, fixed with tests first: `/\host` and `/<tab>/host` slipped past the link check and would leave the site. It found one low issue, the sale-price race, now fixed by the DB check. It confirmed the audit log can't be tampered with, role changes are defended at three layers, and every new page has its own `requireRole()`. 12 SQL probes as admin/sales/inventory/client/anon JWTs cover dashboard gating, audit-log read/write, settings/CMS write rights, no-op updates and actor attribution. See DECISIONS.md.
+- Verified in the browser against local Supabase (public side): home sections, alert banner, footer contacts, WhatsApp links (footer and vehicle page, prefilled message), "Promotions only" filter via the form (5 results), and the CMS-rendered About/How to Buy/Shipping/Contact pages. Admin screens were checked with production build/typecheck and the PostgREST embed queries they use. The browser session couldn't sign in, because entering passwords is left to the owner.
+
+## Not done yet in Phase 6 (deliberate, see DECISIONS.md)
+
+- No account deactivation (needs the Supabase Auth admin API). Demoting a staff account to `client` removes staff access.
+- No promotion start/end dates (no scheduler). No i18n: CMS content is `en` only.
+- No rich text or images inside CMS pages, only headings, paragraphs and bullets.
+- Migration `0013` isn't applied to the hosted project yet (nor `0012`).
+
 ## Next steps
 
-Start Phase 6 — CMS et analytics (banners, pages, promotions, dashboard metrics, audit log), including an admin screen for `site_settings.bank_details`.
+Phase 7 — Hardening (E2E tests, security review, performance, accessibility, SEO audit, backup/restore).

@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "About" };
+import { CmsPageView } from "@/components/cms/cms-page";
+import { getPublishedCmsPage } from "@/lib/settings/queries";
 
-export default function AboutPage() {
-  return (
-    <div className="mx-auto max-w-7xl px-4 py-16">
-      <h1 className="text-2xl font-semibold">About J-cars Exports</h1>
-      <p className="mt-2 text-muted-foreground">
-        Company story and trust signals — editable from the admin CMS in a
-        later phase.
-      </p>
-    </div>
-  );
+export async function generateMetadata(): Promise<Metadata> {
+  const page = await getPublishedCmsPage("about");
+  return { title: page?.title ?? "About", alternates: { canonical: "/about" } };
+}
+
+export default async function AboutPage() {
+  const page = await getPublishedCmsPage("about");
+  return <CmsPageView page={page} fallbackTitle="About J-cars Exports" />;
 }
