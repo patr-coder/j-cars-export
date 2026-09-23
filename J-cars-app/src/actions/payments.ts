@@ -21,6 +21,7 @@ const PAYABLE_STATUSES = ["reserved", "awaiting_payment"] as const;
 function revalidateOrder(orderId: string) {
   revalidatePath("/account/orders");
   revalidatePath(`/account/orders/${orderId}`);
+  revalidatePath("/account/payments");
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${orderId}`);
   revalidatePath("/admin/payments");

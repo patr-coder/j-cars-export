@@ -96,3 +96,51 @@ export async function getAdminPayments(filters: { status?: string } = {}): Promi
     clientLabel: row.order.user?.full_name ?? row.order.user?.email ?? "Unknown",
   }));
 }
+
+export type OrderPaymentOverview = {
+  orderId: string;
+  orderNo: string;
+  status: string;
+  vehicleLabel: string;
+  totalUsd: number;
+  payments: { amount: number; status: string }[];
+  shipmentStatus: string | null;
+  eta: string | null;
+};
+
+export async function getClientPaymentOverview(userId: string): Promise<OrderPaymentOverview[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("orders")
+    .select(
+      `id, order_no, status, total_usd,
+       vehicle:vehicles ( year, make:makes(name), model:models(name) ),
+       payments ( amount, status ),
+       shipment:shipments ( status, eta )`,
+    )
+    .eq("user_id", userId)
+    .neq("status", "cancelled")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`getClientPaymentOverview: ${error.message}`);
+
+  const rows =
+    (data as unknown as {
+      id: string;
+      order_no: string;
+      status: string;
+      total_usd: number;
+      vehicle: { year: number; make: { name: string }; model: { name: string } };
+      payments: { amount: number; status: string }[];
+      shipment: { status: string; eta: string | null } | null;
+    }[]) ?? [];
+  return rows.map((row) => ({
+    orderId: row.id,
+    orderNo: row.order_no,
+    status: row.status,
+    vehicleLabel: `${row.vehicle.year} ${row.vehicle.make.name} ${row.vehicle.model.name}`,
+    totalUsd: Number(row.total_usd),
+    payments: row.payments.map((p) => ({ amount: Number(p.amount), status: p.status })),
+    shipmentStatus: row.shipment?.status ?? null,
+    eta: row.shipment?.eta ?? null,
+  }));
+}

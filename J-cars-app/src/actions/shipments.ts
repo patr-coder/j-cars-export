@@ -96,5 +96,6 @@ export async function upsertShipment(orderId: string, formData: FormData) {
 
   revalidatePath(back);
   revalidatePath(`/account/orders/${orderId}`);
+  revalidatePath("/account/payments");
   redirect(back);
 }

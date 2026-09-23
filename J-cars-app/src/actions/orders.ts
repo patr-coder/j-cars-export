@@ -180,6 +180,7 @@ export async function setOrderStatus(orderId: string, status: OrderStatus) {
   revalidatePath(`/admin/orders/${orderId}`);
   revalidatePath("/account/orders");
   revalidatePath(`/account/orders/${orderId}`);
+  revalidatePath("/account/payments");
   revalidatePath("/stock");
   revalidatePath("/cars/[slug]", "page");
 }

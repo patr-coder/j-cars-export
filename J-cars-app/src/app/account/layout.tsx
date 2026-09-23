@@ -10,6 +10,7 @@ const ACCOUNT_NAV = [
   { href: "/account/searches", label: "Saved searches" },
   { href: "/account/inquiries", label: "Inquiries" },
   { href: "/account/orders", label: "Orders" },
+  { href: "/account/payments", label: "Payments & tracking" },
   { href: "/account/invoices", label: "Invoices" },
   { href: "/account/profile", label: "Profile" },
 ];
