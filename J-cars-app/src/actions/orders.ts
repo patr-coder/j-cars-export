@@ -5,8 +5,8 @@ import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/roles";
 import { getCurrentProfile, getCurrentUser } from "@/lib/auth/session";
 import { sendEmail } from "@/lib/email/resend";
-import { reservationConfirmedEmail } from "@/lib/email/templates";
-import { ORDER_STATUSES, RESERVATION_HOLD_HOURS } from "@/lib/orders/constants";
+import { reservationConfirmedEmail, vehicleShippedEmail } from "@/lib/email/templates";
+import { canTransition, RESERVATION_HOLD_HOURS, type OrderStatus } from "@/lib/orders/constants";
 import { getNextOrderNo } from "@/lib/orders/order-no";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
@@ -117,19 +117,69 @@ export async function cancelOrder(orderId: string, formData: FormData) {
   revalidatePath("/account/invoices");
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${orderId}`);
+  revalidatePath(`/account/orders/${orderId}`);
   revalidatePath("/stock");
   revalidatePath("/cars/[slug]", "page");
 }
 
-export async function setOrderStatus(orderId: string, status: (typeof ORDER_STATUSES)[number]) {
+export async function setOrderStatus(orderId: string, status: OrderStatus) {
   await requireRole(STAFF_ROLES);
   const supabase = await createClient();
-  const { error } = await supabase
+
+  const { data: order, error: fetchError } = await supabase
+    .from("orders")
+    .select(
+      `status, order_no,
+       vehicle:vehicles ( year, make:makes(name), model:models(name) ),
+       user:profiles ( full_name, email )`,
+    )
+    .eq("id", orderId)
+    .maybeSingle();
+  if (fetchError) throw new Error(`setOrderStatus: ${fetchError.message}`);
+  if (!order) throw new Error("setOrderStatus: order not found.");
+  // The UI only offers valid next steps, but the action is callable
+  // directly — enforce the same map server-side. `paid` in particular is
+  // never a manual transition (only verifyPayment sets it).
+  if (!canTransition(order.status, status)) {
+    throw new Error(`setOrderStatus: ${order.status} -> ${status} is not allowed.`);
+  }
+
+  const { data: updated, error } = await supabase
     .from("orders")
     .update({ status: status as Enums["order_status"] })
-    .eq("id", orderId);
+    .eq("id", orderId)
+    .eq("status", order.status)
+    .select("id");
   if (error) throw new Error(`setOrderStatus: ${error.message}`);
+  if (!updated || updated.length === 0) throw new Error("setOrderStatus: order changed, reload and retry.");
+
+  const o = order as unknown as {
+    order_no: string;
+    vehicle: { year: number; make: { name: string }; model: { name: string } };
+    user: { full_name: string | null; email: string } | null;
+  };
+  if (status === "shipped" && o.user) {
+    const { data: shipment } = await supabase
+      .from("shipments")
+      .select("vessel_name, eta")
+      .eq("order_id", orderId)
+      .maybeSingle();
+    await sendEmail({
+      to: o.user.email,
+      ...vehicleShippedEmail({
+        name: o.user.full_name ?? o.user.email,
+        orderNo: o.order_no,
+        vehicleLabel: `${o.vehicle.year} ${o.vehicle.make.name} ${o.vehicle.model.name}`,
+        vesselName: shipment?.vessel_name ?? null,
+        eta: shipment?.eta ?? null,
+      }),
+    });
+  }
 
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${orderId}`);
+  revalidatePath("/account/orders");
+  revalidatePath(`/account/orders/${orderId}`);
+  revalidatePath("/stock");
+  revalidatePath("/cars/[slug]", "page");
 }

@@ -71,9 +71,14 @@ export default async function AccountOrdersPage() {
                   </ConfirmSubmitButton>
                 </form>
               )}
-              <Button asChild size="sm" variant="ghost" className="w-fit">
-                <Link href="/account/invoices">View invoice</Link>
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/account/orders/${order.id}`}>Payment &amp; tracking</Link>
+                </Button>
+                <Button asChild size="sm" variant="ghost">
+                  <Link href="/account/invoices">View invoice</Link>
+                </Button>
+              </div>
             </li>
           ))}
         </ul>

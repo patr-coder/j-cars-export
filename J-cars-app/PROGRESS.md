@@ -103,6 +103,27 @@ For local development, `.env.development.local` (gitignored, not checked in) hol
 - No PDF invoices, no dedicated `invoices` table/numbering separate from `orders.order_no`.
 - `setOrderStatus` only offers `reserved → awaiting_payment` — the rest of the order lifecycle needs Phase 5's payment verification workflow.
 
+## Completed — Phase 5 (Paiement et shipping)
+
+- Payment proof: on `/account/orders/[id]` (new) a client sees the bank-transfer details (`site_settings.bank_details`, placeholder values seeded by migration `0012`), the order total, confirmed amount and balance due, and uploads a proof (PDF/JPG/PNG/WebP, ≤5MB) with an amount and transfer reference (`submitPaymentProof`, `src/actions/payments.ts`). Several proofs per order are allowed; an amount above the remaining balance is refused.
+- Verification: `/admin/payments` is a review queue with To review / Verified / Rejected tabs. Staff open each proof through a signed URL, then verify it or reject it with a reason. Once verified payments cover `total_usd`, `verifyPayment` flips the order to `paid` and the vehicle to `sold`.
+- Shipment + documents: `/admin/orders/[id]` now has payments, a shipment form (carrier, vessel, voyage, booking, ports, ETD/ETA, status, https-only tracking URL) and document upload/delete (B/L, export/inspection certificate, invoice, other). The status buttons follow the full lifecycle `paid → preparing_export → booked_shipping → shipped → arrived → completed`, and the vehicle goes to `in_transit` on shipped.
+- Client tracking: `/account/orders/[id]` shows an order-progress timeline, payment history with rejection reasons, shipment details with a tracking link, and document downloads (signed URLs).
+- Storage: new private `order-files` bucket with per-order storage policies. See DECISIONS.md.
+- Emails (same console-log-until-`RESEND_API_KEY` pattern): payment received, payment confirmed, payment needs attention (rejected), vehicle shipped, ETA updated.
+- Security: migration `0012` closes two pre-existing holes: a client could PATCH their own order to `paid`, and a client could insert an already-verified payment. It also closes one found by this phase's `security-auditor` pass: a `sales` JWT could PATCH `paid` directly and skip verification. The `enforce_order_rules` trigger now gates every order status change, and `paid` requires verified funds in the DB. `/admin/payments` and `/admin/orders/[id]` add a page-level `requireRole(["admin","sales"])` (the admin layout also admits `inventory_manager`). Checked with 12 SQL probes run as client1/client2/sales JWTs.
+- Unit tests (TDD): `src/lib/orders/constants.test.ts` (transition map) and `src/lib/payments/rules.test.ts` (verified total, fully paid, remaining balance, cent drift). 32 tests passing.
+- Verified end-to-end via Playwright against local Supabase: client1 reserves; sales marks awaiting_payment (no manual "paid" button); an over-balance proof is refused; two partial proofs are submitted; staff opens a proof via signed URL, rejects one and verifies the other, and the order stays awaiting_payment; the client sees the rejection reason and resubmits; staff verifies, the order becomes paid and the vehicle sold; a `javascript:` tracking URL is refused with the DB unchanged; staff saves the shipment and uploads a B/L; the lifecycle runs through to completed (vehicle in_transit on shipped); an ETA change keeps the other fields and sends the email; client1 sees everything and downloads the B/L; client2 can't see the order. All five new emails were console-logged.
+
+## Not done yet in Phase 5 (deliberate, see DECISIONS.md)
+
+- **Bank details are placeholders**: fill in `site_settings.bank_details` (local and hosted) before go-live.
+- No refunds or credit notes. Cancelling an order that already has verified payments is allowed, and refunds are handled offline.
+- No deposit or partial-payment terms (spec V2), only multiple transfers toward one total. No Stripe/card.
+- No staff notification when a client uploads a proof. The `/admin/payments` queue is the inbox.
+- Orphaned proof files: if a payment insert fails after the upload, the file stays in the bucket (clients have no delete right). It can't be reached without a payments row.
+- Migration `0012` isn't applied to the hosted project yet.
+
 ## Next steps
 
-Start Phase 5 — Paiement et shipping (payment-proof upload/verification, shipment tracking) on top of Phase 4's reservation/order foundation.
+Start Phase 6 — CMS et analytics (banners, pages, promotions, dashboard metrics, audit log), including an admin screen for `site_settings.bank_details`.

@@ -13,8 +13,8 @@ function escapeHtml(input: string): string {
     .replace(/'/g, "&#39;");
 }
 
-// Plain HTML strings, not react-email — spec §16 only calls for two
-// templates in this phase, not enough to justify a templating dependency.
+// Plain HTML strings, not react-email — each template is a few lines of
+// markup, not enough to justify a templating dependency.
 const WRAP = (title: string, body: string) => `
   <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; color: #111;">
     <h1 style="font-size: 18px;">${title}</h1>
@@ -129,6 +129,107 @@ export function quoteReadyEmail(params: {
           ? `<p style="color: #666; font-size: 13px;">This quote is valid until ${new Date(params.expiresAt).toLocaleDateString()}.</p>`
           : ""
       }
+    `,
+  );
+  return { subject, html };
+}
+
+export function paymentReceivedEmail(params: { name: string; orderNo: string; amount: number }) {
+  const subject = `Payment proof received — order ${params.orderNo}`;
+  const html = WRAP(
+    "We've received your payment proof",
+    `
+      <p>Hi ${escapeHtml(params.name)},</p>
+      <p>
+        Thanks — we've received your proof of payment of ${formatCurrency(params.amount)} for order
+        ${params.orderNo}. Our team will confirm it once the transfer reaches our account.
+      </p>
+    `,
+  );
+  return { subject, html };
+}
+
+export function paymentVerifiedEmail(params: {
+  name: string;
+  orderNo: string;
+  amount: number;
+  remainingUsd: number;
+}) {
+  const subject = `Payment confirmed — order ${params.orderNo}`;
+  const html = WRAP(
+    "Payment confirmed",
+    `
+      <p>Hi ${escapeHtml(params.name)},</p>
+      <p>We've confirmed your payment of ${formatCurrency(params.amount)} for order ${params.orderNo}.</p>
+      <p>
+        ${
+          params.remainingUsd > 0
+            ? `Remaining balance: ${formatCurrency(params.remainingUsd)}.`
+            : "Your order is now fully paid — we'll start preparing your vehicle for export."
+        }
+      </p>
+    `,
+  );
+  return { subject, html };
+}
+
+// `reason` is typed by staff — escaped like any other free text.
+export function paymentRejectedEmail(params: {
+  name: string;
+  orderNo: string;
+  amount: number;
+  reason: string;
+}) {
+  const subject = `Payment proof needs attention — order ${params.orderNo}`;
+  const html = WRAP(
+    "We couldn't confirm your payment",
+    `
+      <p>Hi ${escapeHtml(params.name)},</p>
+      <p>
+        We couldn't confirm the payment of ${formatCurrency(params.amount)} you submitted for order
+        ${params.orderNo}.
+      </p>
+      <p><strong>Reason:</strong> ${escapeHtml(params.reason)}</p>
+      <p>You can upload a new proof from your account.</p>
+    `,
+  );
+  return { subject, html };
+}
+
+export function vehicleShippedEmail(params: {
+  name: string;
+  orderNo: string;
+  vehicleLabel: string;
+  vesselName: string | null;
+  eta: string | null;
+}) {
+  const subject = `Your ${params.vehicleLabel} has shipped`;
+  const html = WRAP(
+    "Your vehicle is on its way",
+    `
+      <p>Hi ${escapeHtml(params.name)},</p>
+      <p>
+        The ${params.vehicleLabel} (order ${params.orderNo}) has shipped${
+          params.vesselName ? ` aboard the ${escapeHtml(params.vesselName)}` : ""
+        }.
+      </p>
+      ${params.eta ? `<p>Estimated arrival: ${new Date(params.eta).toLocaleDateString()}.</p>` : ""}
+      <p>Track its progress and download your shipping documents from your account.</p>
+    `,
+  );
+  return { subject, html };
+}
+
+export function etaUpdatedEmail(params: { name: string; orderNo: string; eta: string }) {
+  const subject = `Updated arrival date — order ${params.orderNo}`;
+  const html = WRAP(
+    "Estimated arrival updated",
+    `
+      <p>Hi ${escapeHtml(params.name)},</p>
+      <p>
+        The estimated arrival date for order ${params.orderNo} is now
+        ${new Date(params.eta).toLocaleDateString()}.
+      </p>
     `,
   );
   return { subject, html };

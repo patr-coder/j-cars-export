@@ -6,7 +6,7 @@ type BadgeVariant = VariantProps<typeof badgeVariants>["variant"];
 function StatusBadge({ status, variant }: { status: string; variant: BadgeVariant }) {
   return (
     <Badge variant={variant} className="capitalize">
-      {status.replace("_", " ")}
+      {status.replaceAll("_", " ")}
     </Badge>
   );
 }
@@ -56,8 +56,7 @@ export function QuoteStatusBadge({ status }: { status: string }) {
 }
 
 // reserved/awaiting_payment: needs follow-up. paid/completed: success.
-// preparing_export/booked_shipping/shipped/arrived: in progress (Phase 5
-// territory, not yet reachable from this app's own actions). cancelled: dropped.
+// preparing_export/booked_shipping/shipped/arrived: in progress. cancelled: dropped.
 const ORDER_STATUS_VARIANT: Record<string, BadgeVariant> = {
   reserved: "warning",
   awaiting_payment: "warning",
@@ -72,4 +71,27 @@ const ORDER_STATUS_VARIANT: Record<string, BadgeVariant> = {
 
 export function OrderStatusBadge({ status }: { status: string }) {
   return <StatusBadge status={status} variant={ORDER_STATUS_VARIANT[status] ?? "outline"} />;
+}
+
+// pending: waiting on staff review. verified: counted toward the total.
+// rejected: client needs to resubmit.
+const PAYMENT_STATUS_VARIANT: Record<string, BadgeVariant> = {
+  pending: "warning",
+  verified: "success",
+  rejected: "destructive",
+};
+
+export function PaymentStatusBadge({ status }: { status: string }) {
+  return <StatusBadge status={status} variant={PAYMENT_STATUS_VARIANT[status] ?? "outline"} />;
+}
+
+const SHIPMENT_STATUS_VARIANT: Record<string, BadgeVariant> = {
+  booked: "default",
+  in_transit: "default",
+  arrived: "success",
+  released: "success",
+};
+
+export function ShipmentStatusBadge({ status }: { status: string }) {
+  return <StatusBadge status={status} variant={SHIPMENT_STATUS_VARIANT[status] ?? "outline"} />;
 }
